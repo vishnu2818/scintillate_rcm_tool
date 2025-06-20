@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard | Scintillate RCM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <div class="container mx-auto px-4 py-6">
+
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-blue-600 mb-2">📊 Insurance Update Dashboard</h1>
+      <p class="text-sm text-gray-600">Manage insurance edits and CPT modifier rules for different clients and payers.</p>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="bg-white p-4 rounded-lg shadow-md mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div>
+        <label class="text-sm font-semibold block mb-1">Client</label>
+        <select name="client" class="w-full border rounded p-2">
+          <option value="">-- Select Client --</option>
+          {% for c in clients %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-semibold block mb-1">Payer</label>
+        <input name="payer" placeholder="Payer" class="w-full border p-2 rounded" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold block mb-1">Edit Category</label>
+        <input name="edit_category" placeholder="Category" class="w-full border p-2 rounded" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold block mb-1">Sub-Category</label>
+        <input name="edit_sub_category" placeholder="Sub Category" class="w-full border p-2 rounded" />
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+          🔍 Filter
+        </button>
+      </div>
+    </form>
+
+    <!-- General Instructions -->
+    <div class="bg-white p-4 rounded-lg shadow-md mb-8">
+      <h2 class="text-xl font-semibold text-blue-700 mb-3">🧾 General Instructions</h2>
+      {% for item in insurance_data %}
+        <details class="mb-3 border border-gray-200 rounded overflow-hidden">
+          <summary class="px-4 py-2 cursor-pointer bg-gray-100 hover:bg-gray-200 text-sm font-medium">
+            {{ item.payer_name }} | {{ item.edit_type }} | v{{ item.version }}
+          </summary>
+          <div class="px-4 py-3 text-sm text-gray-700">{{ item.instruction }}</div>
+        </details>
+      {% empty %}
+        <p class="text-gray-500">No general instructions found.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Modifier Rules -->
+    <div class="bg-white p-4 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold text-blue-700 mb-3">🧪 CPT Modifier Instructions</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm border border-gray-200">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-2 border-b text-left">Client</th>
+              <th class="p-2 border-b text-left">Modifier</th>
+              <th class="p-2 border-b text-left">Instruction</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in modifier_data %}
+              <tr class="hover:bg-gray-50 border-b">
+                <td class="p-2">{{ rule.client.name }}</td>
+                <td class="p-2">{{ rule.modifier_code }}</td>
+                <td class="p-2">{{ rule.instruction }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="p-2 text-center text-gray-500">No modifier instructions found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    {% if request.user.is_staff %}
+      <div class="mt-6 flex flex-wrap gap-4">
+        <a href="{% url 'export_csv' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+          📥 Export CSV
+        </a>
+        <a href="{% url 'add_edit_insurance' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          ➕ Add New Instruction
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

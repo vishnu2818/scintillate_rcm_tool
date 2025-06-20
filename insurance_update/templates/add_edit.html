@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Insurance Edit | Scintillate RCM</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      padding: 30px;
+    }
+
+    .form-container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      margin-bottom: 1.2rem;
+      color: #007bff;
+      text-align: center;
+    }
+
+    form label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+
+    form input, form select, form textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1rem;
+      text-decoration: none;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-container">
+  <h2>➕ Add Insurance Edit</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <label for="id_client">Client</label>
+    {{ form.client }}
+
+    <label for="id_payer_name">Payer Name</label>
+    {{ form.payer_name }}
+
+    <label for="id_payer_category">Payer Category</label>
+    {{ form.payer_category }}
+
+    <label for="id_edit_type">Edit Type</label>
+    {{ form.edit_type }}
+
+    <label for="id_edit_sub_category">Edit Sub Category</label>
+    {{ form.edit_sub_category }}
+
+    <label for="id_instruction">Instruction</label>
+    {{ form.instruction }}
+
+    <label for="id_version">Version</label>
+    {{ form.version }}
+
+    <button type="submit">💾 Save</button>
+  </form>
+
+  <a class="back-link" href="{% url 'dashboard' %}">← Back to Dashboard</a>
+</div>
+
+</body>
+</html>
