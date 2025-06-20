@@ -41,7 +41,7 @@ A streamlined web-based platform for managing insurance payer edit rules and CPT
 
 1. **Clone the Repo**
 
-git clone https://github.com/YOUR_USERNAME/scintillate_rcm_tool.git
+git clone https://github.com/vishnu2818/scintillate_rcm_tool.git
 cd scintillate_rcm_tool
 
 2. **Set up Virtual Environment**
