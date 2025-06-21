@@ -119,6 +119,8 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
+LOGIN_URL = '/login/'
+
 USE_TZ = True
 
 

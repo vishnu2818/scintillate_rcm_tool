@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from .forms import *
 from django.contrib.auth.decorators import login_required
 
+
 def login_page(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -78,12 +79,14 @@ def add_edit_insurance(request):
         return redirect('dashboard')
     return render(request, 'add_edit.html', {'form': form})
 
+
 import pandas as pd
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import ExcelDualUploadForm
 from .models import Client, InsuranceEdit, ModifierRule
 from django.contrib.auth.decorators import login_required
+
 
 @login_required
 def unified_excel_import_view(request):
@@ -130,11 +133,53 @@ def unified_excel_import_view(request):
                 xl = pd.ExcelFile(excel_file)
 
                 # Read both sheets
-                df1 = xl.parse('insurance_edits')
-                df2 = xl.parse('modifier_rules')
+                # df1 = xl.parse('insurance_edits')
+                # df2 = xl.parse('modifier_rules')
+                # Check for insurance_edits pattern
 
-                df1.columns = [c.strip().lower().replace(' ', '_') for c in df1.columns]
-                df2.columns = [c.strip().lower().replace(' ', '_') for c in df2.columns]
+                # Read all sheet names
+                sheet_names = xl.sheet_names
+
+                df1, df2 = None, None
+
+                for sheet_name in sheet_names:
+                    df = xl.parse(sheet_name)
+                    df.columns = [col.strip() for col in df.columns]
+
+                    # Check for insurance_edits pattern
+                    if set(['PAYERS', 'Payor Category', 'EDITS Category', 'EDITS Sub-Category',
+                            'EDITS - Instructions']).issubset(df.columns):
+                        df1 = df.copy()
+                    # Check for modifier_rules pattern
+                    elif set(['PAYERS', 'Payor Category', 'CPT Code Type', 'CPT Code Selection', 'CPT Sub-Category',
+                              'CPT Based Modifier Instruction']).issubset(df.columns):
+                        df2 = df.copy()
+
+                if df1 is None or df2 is None:
+                    messages.error(request,
+                                   "Excel file must contain both insurance and modifier rule sheets with correct headers.")
+                    return redirect('excel_import')
+
+                # Rename columns to match internal model fields
+                df1.rename(columns={
+                    'PAYERS': 'payer_name',
+                    'Payor Category': 'payer_category',
+                    'EDITS Category': 'edit_type',
+                    'EDITS Sub-Category': 'edit_sub_category',
+                    'EDITS - Instructions': 'instruction',
+                }, inplace=True)
+                df1['client'] = 'Default Client'
+                df1['version'] = 'v1.0'
+
+                df2.rename(columns={
+                    'PAYERS': 'payer_name',
+                    'Payor Category': 'payer_category',
+                    'CPT Code Type': 'code_type',
+                    'CPT Code Selection': 'code_list',
+                    'CPT Sub-Category': 'sub_category',
+                    'CPT Based Modifier Instruction': 'modifier_instruction',
+                }, inplace=True)
+                df2['client'] = 'Default Client'
 
                 insurance_data = df1.fillna('').to_dict(orient='records')
                 modifier_data = df2.fillna('').to_dict(orient='records')
@@ -146,7 +191,76 @@ def unified_excel_import_view(request):
                     'insurance_data': insurance_data[:5],
                     'modifier_data': modifier_data[:5],
                 })
+
     else:
         form = ExcelDualUploadForm()
 
     return render(request, 'excel_upload_dual.html', {'form': form})
+
+
+
+# @login_required
+# def unified_excel_import_view(request):
+#     if request.method == 'POST':
+#         if 'confirm' in request.POST:
+#             insurance_data = request.session.get('insurance_data', [])
+#             modifier_data = request.session.get('modifier_data', [])
+#
+#             for row in insurance_data:
+#                 client, _ = Client.objects.get_or_create(name=row.get('client', ''))
+#                 InsuranceEdit.objects.create(
+#                     client=client,
+#                     payer_name=row.get('payer_name', ''),
+#                     payer_category=row.get('payer_category', ''),
+#                     edit_type=row.get('edit_type', ''),
+#                     edit_sub_category=row.get('edit_sub_category', ''),
+#                     instruction=row.get('instruction', ''),
+#                     version=row.get('version', ''),
+#                     created_by=request.user
+#                 )
+#
+#             for row in modifier_data:
+#                 client, _ = Client.objects.get_or_create(name=row.get('client', ''))
+#                 ModifierRule.objects.create(
+#                     client=client,
+#                     payer_name=row.get('payer_name', ''),
+#                     payer_category=row.get('payer_category', ''),
+#                     code_type=row.get('code_type', ''),
+#                     code_list=row.get('code_list', ''),
+#                     sub_category=row.get('sub_category', ''),
+#                     modifier_instruction=row.get('modifier_instruction', ''),
+#                     created_by=request.user
+#                 )
+#
+#             request.session.pop('insurance_data', None)
+#             request.session.pop('modifier_data', None)
+#             messages.success(request, "Excel data imported successfully.")
+#             return redirect('dashboard')
+#
+#         else:
+#             form = ExcelDualUploadForm(request.POST, request.FILES)
+#             if form.is_valid():
+#                 excel_file = request.FILES['excel_file']
+#                 xl = pd.ExcelFile(excel_file)
+#
+#                 # Read both sheets
+#                 df1 = xl.parse('insurance_edits')
+#                 df2 = xl.parse('modifier_rules')
+#
+#                 df1.columns = [c.strip().lower().replace(' ', '_') for c in df1.columns]
+#                 df2.columns = [c.strip().lower().replace(' ', '_') for c in df2.columns]
+#
+#                 insurance_data = df1.fillna('').to_dict(orient='records')
+#                 modifier_data = df2.fillna('').to_dict(orient='records')
+#
+#                 request.session['insurance_data'] = insurance_data
+#                 request.session['modifier_data'] = modifier_data
+#
+#                 return render(request, 'excel_preview_dual.html', {
+#                     'insurance_data': insurance_data[:5],
+#                     'modifier_data': modifier_data[:5],
+#                 })
+#     else:
+#         form = ExcelDualUploadForm()
+#
+#     return render(request, 'excel_upload_dual.html', {'form': form})
