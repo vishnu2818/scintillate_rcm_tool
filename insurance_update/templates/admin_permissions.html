@@ -1,0 +1,97 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Model Permissions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6 text-gray-800">
+  <h1 class="text-2xl font-bold text-blue-700 mb-6">🔐 Role-Based Model Permissions</h1>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for model in models %}
+      <div class="bg-white p-4 mb-6 rounded-lg shadow-md">
+        <h2 class="text-lg font-semibold mb-3 text-gray-800">{{ model.name }}</h2>
+
+        <table class="min-w-full text-sm table-auto border">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2 text-left">User</th>
+              {% for action in actions %}
+                <th class="p-2 text-center capitalize">{{ action }}</th>
+              {% endfor %}
+              <th class="p-2 text-center">Full Access</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+              {% with key=model.key|add:"_"|add:user.id|stringformat:"s" %}
+                {% with perm=permission_map|get_item:key %}
+                  <tr class="border-t">
+                    <td class="p-2">{{ user.name }}</td>
+
+                    {% for action in actions %}
+                      <td class="p-2 text-center">
+                        <input type="checkbox"
+                               name="{{ key }}_{{ action }}"
+                               class="perm-checkbox {{ key }}_perm"
+                               data-key="{{ key }}"
+                               data-action="{{ action }}"
+                               {% if perm and perm|get_attr:"can_"|add:action %}checked{% endif %}>
+                      </td>
+                    {% endfor %}
+
+                    <td class="p-2 text-center">
+                      <input type="checkbox"
+                             class="full-access-checkbox"
+                             data-key="{{ key }}">
+                    </td>
+                  </tr>
+                {% endwith %}
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+
+    <button type="submit" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+      💾 Save Permissions
+    </button>
+  </form>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Loop through each "Full Access" checkbox
+    document.querySelectorAll('.full-access-checkbox').forEach(fullCheckbox => {
+      const key = fullCheckbox.dataset.key;
+
+      // Only get checkboxes in the same row
+      const row = fullCheckbox.closest('tr');
+      const checkboxes = row.querySelectorAll(`.perm-checkbox`);
+
+      // Initialize full access checkbox based on row permissions
+      const allChecked = [...checkboxes].every(cb => cb.checked);
+      fullCheckbox.checked = allChecked;
+
+      // When full access is clicked
+      fullCheckbox.addEventListener('change', function () {
+        checkboxes.forEach(cb => cb.checked = fullCheckbox.checked);
+      });
+
+      // When any of the individual checkboxes is changed
+      checkboxes.forEach(cb => {
+        cb.addEventListener('change', function () {
+          const allNowChecked = [...checkboxes].every(c => c.checked);
+          fullCheckbox.checked = allNowChecked;
+        });
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

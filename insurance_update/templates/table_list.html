@@ -1,0 +1,37 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>{{ model_name|capfirst }} Table</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-6 text-gray-800">
+  <h1 class="text-2xl font-bold mb-4">{{ model_name|capfirst }} Table</h1>
+
+  <div class="overflow-auto bg-white rounded shadow p-4">
+    <table class="min-w-full border text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          {% for field in fields %}
+            <th class="border px-3 py-2">{{ field }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in records %}
+          <tr class="hover:bg-gray-50">
+            {% for field in fields %}
+              <td class="border px-3 py-2">{{ row|attr:field }}</td>
+            {% endfor %}
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="{{ fields|length }}" class="p-4 text-center text-gray-500">No records found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

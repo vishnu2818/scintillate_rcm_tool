@@ -25,6 +25,7 @@ class UserAdmin(BaseUserAdmin):
 
 admin.site.register(User, UserAdmin)
 admin.site.register(Client)
+admin.site.register(ModelAccessPermission)
 
 
 @admin.register(InsuranceEdit)

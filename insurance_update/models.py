@@ -31,8 +31,8 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
         ('admin', 'Admin'),
-        ('staff', 'Staff'),
-        ('client_admin', 'Client Admin'),
+        ('manager', 'Manager'),
+        ('viewer', 'Viewer'),
     )
 
     email = models.EmailField(unique=True)
@@ -83,3 +83,15 @@ class ModifierRule(models.Model):
 
     def __str__(self):
         return f"{self.payer_name} - {self.code_type} - {self.sub_category or ''}"
+
+
+class ModelAccessPermission(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    model_name = models.CharField(max_length=100)
+    can_view = models.BooleanField(default=False)
+    can_add = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'model_name')
