@@ -4,11 +4,24 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from .forms import *
 from django.contrib.auth.decorators import login_required
-
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
 
 def login_page(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
+
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        user = authenticate(request, email=email, password=password)
+        if user:
+            login(request, user)
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Invalid email or password.')
+
     return render(request, 'login.html')
 
 

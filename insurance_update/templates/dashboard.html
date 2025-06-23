@@ -9,58 +9,75 @@
     #sidebar {
       transition: transform 0.3s ease-in-out;
     }
-    .sidebar-hidden {
-      transform: translateX(-100%);
+    .shadow-elegant {
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
     }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-100 text-gray-800 font-sans">
 
+<!-- Full container -->
 <div class="flex h-screen overflow-hidden">
-  <!-- Sidebar -->
-  <div id="sidebar" class="w-64 bg-white shadow-lg p-4 transition-transform transform -translate-x-64 md:translate-x-0 fixed md:static z-50 h-full">
-    <h2 class="text-xl font-bold mb-6 text-blue-700">📚 Navigation</h2>
-    <ul class="space-y-4 text-sm">
-      <li><a href="{% url 'excel_import' %}" class="text-blue-600 hover:underline">📁 Upload Excel</a></li>
-      <li><a href="{% url 'manage_permissions' %}" class="text-blue-600 hover:underline">🛠 Admin Panel</a></li>
-      <li class="font-semibold text-gray-700 mt-4">📋 Tables</li>
-      {% for model in table_list %}
-        <li><a href="{% url 'table_view' model=model %}" class="ml-2 text-blue-500 hover:underline">🔸 {{ model|capfirst }}</a></li>
-      {% endfor %}
-    </ul>
-  </div>
 
-  <!-- Main Content -->
-  <div class="flex-1 ml-0 md:ml-64 transition-all">
-    <!-- Top bar with toggle -->
-    <div class="bg-white shadow p-4 flex justify-between items-center md:hidden">
-      <button onclick="toggleSidebar()" class="text-blue-600 text-lg font-semibold">☰ Menu</button>
-    </div>
+  <!-- Sidebar (Fixed Left) -->
+  <aside id="sidebar" class="w-64 fixed top-0 left-0 h-full bg-white shadow-elegant p-6 z-40 transform -translate-x-full md:translate-x-0 md:static">
+    <h2 class="text-2xl font-bold text-blue-700 mb-10">📚 Scintillate RCM</h2>
+    <nav class="space-y-6 text-base">
+      <a href="{% url 'excel_import' %}" class="flex items-center text-gray-700 hover:text-blue-600">
+        📁 <span class="ml-2">Upload Excel</span>
+      </a>
+      <a href="{% url 'manage_permissions' %}" class="flex items-center text-gray-700 hover:text-blue-600">
+        🔐 <span class="ml-2">Admin Panel</span>
+      </a>
+      <a href="{% url 'model_tables' %}" class="flex items-center text-gray-700 hover:text-blue-600">
+        📋 <span class="ml-2">Tables</span>
+      </a>
+    </nav>
+  </aside>
 
-    <div class="p-6">
-      <!-- Your Existing Dashboard Content Starts Here -->
+  <!-- Main area pushed right by sidebar width -->
+  <div class="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen">
 
-      <h1 class="text-2xl font-bold text-blue-600 mb-4">📊 Insurance Update Dashboard</h1>
-      <p class="text-sm text-gray-600 mb-6">Manage insurance edits and CPT modifier rules for different clients and payers.</p>
-
-      <!-- Example Widget -->
-      <div class="bg-white p-4 rounded-lg shadow-md mb-6">
-        <h2 class="text-lg font-semibold text-gray-800">Welcome, {{ request.user.username }}</h2>
-        <p class="text-sm text-gray-600 mt-2">Use the sidebar to upload Excel files, access admin, or view model tables.</p>
+    <!-- Top Navbar -->
+    <header class="bg-white shadow-elegant px-6 py-4 flex justify-between items-center sticky top-0 z-30">
+      <button onclick="toggleSidebar()" class="md:hidden text-blue-700 text-2xl font-semibold">☰</button>
+      <div class="flex items-center gap-4">
+        <span class="text-gray-700 font-medium hidden md:inline">👤 {{ request.user.name }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition">
+            Logout
+          </button>
+        </form>
       </div>
+    </header>
 
-      <!-- Add your real dashboard logic/content here -->
+    <!-- Main Content -->
+    <main class="p-6 flex-grow overflow-auto">
+      <h1 class="text-3xl font-bold text-blue-700 mb-2">📊 Dashboard</h1>
+      <p class="text-gray-600 text-base mb-6">Welcome to Scintillate RCM. Manage insurance edits, modifier rules, and more.</p>
 
-    </div> <!-- end of p-6 -->
-  </div> <!-- end of main content -->
-</div> <!-- end of flex -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white shadow-elegant rounded-xl p-5">
+          <h2 class="text-xl font-semibold text-gray-800">🔍 Quick Overview</h2>
+          <p class="text-sm text-gray-600 mt-2">Upload Excel files or access admin controls easily using the sidebar.</p>
+        </div>
+
+        <div class="bg-white shadow-elegant rounded-xl p-5">
+          <h2 class="text-xl font-semibold text-gray-800">👤 Logged in as</h2>
+          <p class="text-sm text-gray-600 mt-2">{{ request.user.name }} ({{ request.user.email }})</p>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
 
 <script>
   function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('-translate-x-64');
+    document.getElementById('sidebar').classList.toggle('-translate-x-full');
   }
 </script>
-</body>
 
+</body>
 </html>
