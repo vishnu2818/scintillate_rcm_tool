@@ -1,3 +1,253 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <title>Insurance, Modifier & Client Tables</title>-->
+<!--  <script src="https://cdn.tailwindcss.com"></script>-->
+<!--  <script>-->
+<!--  function switchTab(tabId) {-->
+<!--    // Hide all tab contents-->
+<!--    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));-->
+
+<!--    // Show selected tab content-->
+<!--    document.getElementById(tabId).classList.remove('hidden');-->
+
+<!--    // Update underline styles-->
+<!--    document.querySelectorAll('.tab-button').forEach(btn => {-->
+<!--      btn.classList.remove('border-blue-600', 'text-blue-600');-->
+<!--      btn.classList.add('border-transparent', 'text-gray-600');-->
+<!--    });-->
+
+<!--    const activeBtn = document.getElementById('btn-' + tabId);-->
+<!--    activeBtn.classList.add('border-blue-600', 'text-blue-600');-->
+<!--    activeBtn.classList.remove('border-transparent', 'text-gray-600');-->
+<!--  }-->
+
+<!--  // Auto activate first tab on page load-->
+<!--  document.addEventListener('DOMContentLoaded', () => {-->
+<!--    switchTab('insurance-tab');-->
+<!--  });-->
+<!--</script>-->
+
+
+<!--</head>-->
+<!--<body class="bg-gray-100 p-6 text-gray-800">-->
+
+<!--  <h1 class="text-2xl font-bold mb-6 text-blue-700">Model Tables</h1>-->
+
+<!--&lt;!&ndash; Tabs with underline &ndash;&gt;-->
+<!--<div class="flex border-b border-gray-300 mb-6 space-x-6">-->
+<!--  <button id="btn-insurance-tab"-->
+<!--          onclick="switchTab('insurance-tab')"-->
+<!--          class="tab-button pb-2 border-b-2 border-blue-600 text-blue-600 font-medium">-->
+<!--    Insurance Edits-->
+<!--  </button>-->
+<!--  <button id="btn-modifier-tab"-->
+<!--          onclick="switchTab('modifier-tab')"-->
+<!--          class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">-->
+<!--    Modifier Rules-->
+<!--  </button>-->
+<!--  <button id="btn-client-tab"-->
+<!--          onclick="switchTab('client-tab')"-->
+<!--          class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">-->
+<!--    Clients-->
+<!--  </button>-->
+<!--</div>-->
+<!--  &lt;!&ndash; Tab 1: InsuranceEdit &ndash;&gt;-->
+<!--<div id="insurance-tab" class="tab-content">-->
+
+<!--  &lt;!&ndash; 🔽 Dropdown filters &ndash;&gt;-->
+<!--  <form method="get" class="mb-4">-->
+<!--  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">-->
+<!--    &lt;!&ndash; Payer Name &ndash;&gt;-->
+<!--    <select name="payer_name" class="p-2 border rounded">-->
+<!--      <option value="">Payer Name</option>-->
+<!--      {% for name in payer_names %}-->
+<!--        <option value="{{ name }}" {% if request.GET.payer_name == name %}selected{% endif %}>{{ name }}</option>-->
+<!--      {% endfor %}-->
+<!--    </select>-->
+
+<!--    &lt;!&ndash; Payer Category &ndash;&gt;-->
+<!--    <select name="payer_category" class="p-2 border rounded">-->
+<!--      <option value="">Payer Category</option>-->
+<!--      {% for cat in payer_categories %}-->
+<!--        <option value="{{ cat }}" {% if request.GET.payer_category == cat %}selected{% endif %}>{{ cat }}</option>-->
+<!--      {% endfor %}-->
+<!--    </select>-->
+
+<!--  &lt;!&ndash;    Edit Category&ndash;&gt;-->
+<!--    <select name="edit_type" class="p-2 border rounded">-->
+<!--    <option value="">Edit Category</option>-->
+<!--    {% for et in edit_types %}-->
+<!--      <option value="{{ et }}" {% if et == filters.edit_type %}selected{% endif %}>{{ et }}</option>-->
+<!--    {% endfor %}-->
+<!--  </select>-->
+
+
+<!--    &lt;!&ndash; Sub Category &ndash;&gt;-->
+<!--    <select name="edit_sub_category" class="p-2 border rounded">-->
+<!--      <option value="">Sub Category</option>-->
+<!--      {% for sub in edit_sub_categories %}-->
+<!--        <option value="{{ sub }}" {% if request.GET.edit_sub_category == sub %}selected{% endif %}>{{ sub }}</option>-->
+<!--      {% endfor %}-->
+<!--    </select>-->
+
+<!--    &lt;!&ndash; Buttons &ndash;&gt;-->
+<!--    <div class="flex gap-2 mt-1 md:mt-0">-->
+<!--      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>-->
+<!--      <a href="{% url 'model_tables' %}" class="px-4 py-2 bg-gray-400 text-white rounded">Clear</a>-->
+<!--    </div>-->
+
+<!--  </div>-->
+<!--</form>-->
+
+
+<!--  &lt;!&ndash;  Table &ndash;&gt;-->
+<!--  <div class="overflow-x-auto bg-white p-4 rounded shadow">-->
+<!--    <h2 class="text-lg font-semibold mb-3">Insurance Edit Records</h2>-->
+<!--    <table class="min-w-full table-fixed text-sm border border-gray-300">-->
+<!--    <thead class="bg-gray-200 text-left">-->
+<!--      <tr>-->
+<!--        <th class="p-2 w-32 border-r">Payer Name</th>-->
+<!--        <th class="p-2 w-36 border-r">Payer Category</th>-->
+<!--        <th class="p-2 w-40 border-r">Edits Category</th>-->
+<!--        <th class="p-2 w-40 border-r">Edits Sub-Category</th>-->
+<!--        <th class="p-2 w-[30rem]">Edits Instruction</th>-->
+<!--      </tr>-->
+<!--    </thead>-->
+<!--    <tbody class="align-top">-->
+<!--      {% for edit in insurance_edits %}-->
+<!--        <tr class="border-t">-->
+<!--          <td class="p-2 border-r">{{ edit.payer_name }}</td>-->
+<!--          <td class="p-2 border-r">{{ edit.payer_category }}</td>-->
+<!--          <td class="p-2 border-r">{{ edit.edit_type }}</td>-->
+<!--          <td class="p-2 border-r">{{ edit.edit_sub_category }}</td>-->
+<!--          <td class="p-2 whitespace-pre-wrap break-words">{{ edit.instruction }}</td>-->
+<!--        </tr>-->
+<!--      {% empty %}-->
+<!--        <tr>-->
+<!--          <td colspan="5" class="text-center text-gray-500 p-4">No records found.</td>-->
+<!--        </tr>-->
+<!--      {% endfor %}-->
+<!--    </tbody>-->
+<!--  </table>-->
+<!--  </div>-->
+
+<!--</div>-->
+
+
+<!--  &lt;!&ndash; Tab 2: ModifierRule &ndash;&gt;-->
+<!--<div id="modifier-tab" class="tab-content hidden">-->
+
+<!--  <form method="get" class="mb-4">-->
+<!--  <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">-->
+
+<!--    &lt;!&ndash; Payer Name &ndash;&gt;-->
+<!--    <select name="payer_name" class="p-2 border rounded">-->
+<!--      <option value="">Payer Name</option>-->
+<!--      {% for name in payer_names %}-->
+<!--        <option value="{{ name }}" {% if filters.payer_name == name %}selected{% endif %}>{{ name }}</option>-->
+<!--      {% endfor %}-->
+<!--    </select>-->
+
+<!--    &lt;!&ndash; Payer Category &ndash;&gt;-->
+<!--    <select name="payer_category" class="p-2 border rounded">-->
+<!--      <option value="">Payer Category</option>-->
+<!--      {% for cat in payer_categories %}-->
+<!--        <option value="{{ cat }}" {% if filters.payer_category == cat %}selected{% endif %}>{{ cat }}</option>-->
+<!--      {% endfor %}-->
+<!--    </select>-->
+
+<!--    &lt;!&ndash; Code Type &ndash;&gt;-->
+<!--    <select name="code_type" class="p-2 border rounded">-->
+<!--      <option value="">Code Type</option>-->
+<!--      {% for ct in code_types %}-->
+<!--        <option value="{{ ct }}" {% if filters.code_type == ct %}selected{% endif %}>{{ ct }}</option>-->
+<!--      {% endfor %}-->
+<!--    </select>-->
+
+<!--    &lt;!&ndash; Code List Search &ndash;&gt;-->
+<!--    <input type="text" name="code_list" placeholder="Search Code List"-->
+<!--           value="{{ filters.code_list }}" class="p-2 border rounded" />-->
+
+<!--    &lt;!&ndash; Sub Category Search &ndash;&gt;-->
+<!--    <input type="text" name="sub_category" placeholder="Search Sub Category"-->
+<!--           value="{{ filters.sub_category }}" class="p-2 border rounded" />-->
+
+<!--    &lt;!&ndash; Submit &ndash;&gt;-->
+<!--    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>-->
+
+<!--    &lt;!&ndash; Clear &ndash;&gt;-->
+<!--    <a href="{% url 'model_tables' %}" class="px-4 py-2 bg-gray-400 text-white rounded text-center">Clear</a>-->
+
+<!--  </div>-->
+<!--</form>-->
+
+
+<!--  <div class="overflow-x-auto bg-white p-6 rounded shadow">-->
+<!--    <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Modifier Rule Records</h2>-->
+
+<!--    <table class="min-w-full table-fixed text-sm border border-gray-300">-->
+<!--      <thead class="bg-gray-100 text-left">-->
+<!--        <tr>-->
+<!--          <th class="p-2 w-32 border-r">Payers</th>-->
+<!--          <th class="p-2 w-36 border-r">Payer Category</th>-->
+<!--          <th class="p-2 w-36 border-r">CPT Code Type</th>-->
+<!--          <th class="p-2 w-80 border-r">CPT Code Section</th>-->
+<!--          <th class="p-2 w-56 border-r">CPT Sub-Category</th>-->
+<!--          <th class="p-2 w-[28rem]">CPT Based Modifier Instruction</th>-->
+<!--        </tr>-->
+<!--      </thead>-->
+<!--      <tbody class="align-top">-->
+<!--        {% for rule in modifier_rules %}-->
+<!--          <tr class="border-t">-->
+<!--            <td class="p-2 border-r">{{ rule.payer_name }}</td>-->
+<!--            <td class="p-2 border-r">{{ rule.payer_category }}</td>-->
+<!--            <td class="p-2 border-r">{{ rule.code_type }}</td>-->
+<!--            <td class="p-2 border-r whitespace-pre-wrap break-words">{{ rule.code_list }}</td>-->
+<!--            <td class="p-2 border-r">{{ rule.sub_category }}</td>-->
+<!--            <td class="p-2 whitespace-pre-wrap break-words">{{ rule.modifier_instruction }}</td>-->
+<!--          </tr>-->
+<!--        {% endfor %}-->
+<!--      </tbody>-->
+<!--    </table>-->
+<!--  </div>-->
+<!--</div>-->
+
+
+<!--  &lt;!&ndash; Tab 3: Clients &ndash;&gt;-->
+<!--  <div id="client-tab" class="tab-content hidden">-->
+<!--    <div class="overflow-x-auto bg-white p-4 rounded shadow">-->
+<!--      <h2 class="text-lg font-semibold mb-3">Client List</h2>-->
+<!--      <table class="min-w-full text-sm table-auto border border-gray-300">-->
+<!--        <thead class="bg-gray-200">-->
+<!--          <tr>-->
+<!--            <th class="p-2 text-left">Name</th>-->
+<!--            <th class="p-2 text-center">Active</th>-->
+<!--          </tr>-->
+<!--        </thead>-->
+<!--        <tbody>-->
+<!--          {% for client in clients %}-->
+<!--            <tr class="border-t">-->
+<!--              <td class="p-2">{{ client.name }}</td>-->
+<!--              <td class="p-2 text-center">-->
+<!--                {% if client.active %}-->
+<!--                  ✅-->
+<!--                {% else %}-->
+<!--                  ❌-->
+<!--                {% endif %}-->
+<!--              </td>-->
+<!--            </tr>-->
+<!--          {% endfor %}-->
+<!--        </tbody>-->
+<!--      </table>-->
+<!--    </div>-->
+<!--  </div>-->
+
+<!--</body>-->
+<!--</html>-->
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,13 +256,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
   function switchTab(tabId) {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    // Scroll to top when switching tab
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Show selected tab content
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    // Show selected tab
     document.getElementById(tabId).classList.remove('hidden');
 
-    // Update underline styles
+    // Tab button styling
     document.querySelectorAll('.tab-button').forEach(btn => {
       btn.classList.remove('border-blue-600', 'text-blue-600');
       btn.classList.add('border-transparent', 'text-gray-600');
@@ -21,161 +273,101 @@
     const activeBtn = document.getElementById('btn-' + tabId);
     activeBtn.classList.add('border-blue-600', 'text-blue-600');
     activeBtn.classList.remove('border-transparent', 'text-gray-600');
+
+    // Update URL hash
+    window.location.hash = tabId;
   }
 
-  // Auto activate first tab on page load
+  // Auto-open active tab on reload
   document.addEventListener('DOMContentLoaded', () => {
-    switchTab('insurance-tab');
+    const hash = window.location.hash.replace('#', '');
+    const defaultTab = hash || 'insurance-tab';
+    switchTab(defaultTab);
   });
 </script>
-
 
 </head>
 <body class="bg-gray-100 p-6 text-gray-800">
 
   <h1 class="text-2xl font-bold mb-6 text-blue-700">Model Tables</h1>
 
-<!-- Tabs with underline -->
-<div class="flex border-b border-gray-300 mb-6 space-x-6">
-  <button id="btn-insurance-tab"
-          onclick="switchTab('insurance-tab')"
-          class="tab-button pb-2 border-b-2 border-blue-600 text-blue-600 font-medium">
-    Insurance Edits
-  </button>
-  <button id="btn-modifier-tab"
-          onclick="switchTab('modifier-tab')"
-          class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
-    Modifier Rules
-  </button>
-  <button id="btn-client-tab"
-          onclick="switchTab('client-tab')"
-          class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
-    Clients
-  </button>
-</div>
-  <!-- Tab 1: InsuranceEdit -->
-<div id="insurance-tab" class="tab-content">
-
-  <!-- 🔽 Dropdown filters -->
-  <form method="get" class="mb-4">
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-
-      <!-- Client dropdown -->
-      <select name="client" class="p-2 border rounded">
-        <option value="">Client</option>
-        {% for c in clients %}
-          <option value="{{ c.id }}" {% if filters.client == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- Payer Name -->
-      <select name="payer_name" class="p-2 border rounded">
-        <option value="">Payer Name</option>
-        {% for name in payer_names %}
-          <option value="{{ name }}" {% if filters.payer_name == name %}selected{% endif %}>{{ name }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- Payer Category -->
-      <select name="payer_category" class="p-2 border rounded">
-        <option value="">Payer Category</option>
-        {% for cat in payer_categories %}
-          <option value="{{ cat }}" {% if filters.payer_category == cat %}selected{% endif %}>{{ cat }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- Edit Type -->
-      <select name="edit_type" class="p-2 border rounded">
-        <option value="">Edit Type</option>
-        {% for et in edit_types %}
-          <option value="{{ et }}" {% if filters.edit_type == et %}selected{% endif %}>{{ et }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- Sub-Category -->
-      <select name="edit_sub_category" class="p-2 border rounded">
-        <option value="">Sub Category</option>
-        {% for sub in edit_sub_categories %}
-          <option value="{{ sub }}" {% if filters.edit_sub_category == sub %}selected{% endif %}>{{ sub }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <button type="submit" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded">🔍 Filter</button>
-  </form>
-
-  <!-- 📋 Table -->
-  <div class="overflow-x-auto bg-white p-4 rounded shadow">
-    <h2 class="text-lg font-semibold mb-3">Insurance Edit Records</h2>
-    <table class="min-w-full text-sm table-auto border border-gray-300">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="p-2 text-left">Client</th>
-          <th class="p-2">Payer Name</th>
-          <th class="p-2">Category</th>
-          <th class="p-2">Edit Type</th>
-          <th class="p-2">Sub-Category</th>
-          <th class="p-2">Instruction</th>
-          <th class="p-2">Version</th>
-          <th class="p-2">Created By</th>
-          <th class="p-2">Created At</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for edit in insurance_edits %}
-          <tr class="border-t">
-            <td class="p-2">{{ edit.client.name }}</td>
-            <td class="p-2">{{ edit.payer_name }}</td>
-            <td class="p-2">{{ edit.payer_category }}</td>
-            <td class="p-2">{{ edit.edit_type }}</td>
-            <td class="p-2">{{ edit.edit_sub_category }}</td>
-            <td class="p-2">{{ edit.instruction }}</td>
-            <td class="p-2">{{ edit.version }}</td>
-            <td class="p-2">{{ edit.created_by.name }}</td>
-            <td class="p-2">{{ edit.created_at }}</td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="9" class="text-center text-gray-500 p-4">No records found.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Tab Buttons -->
+  <div class="flex border-b border-gray-300 mb-6 space-x-6">
+    <button id="btn-insurance-tab" onclick="switchTab('insurance-tab')" class="tab-button pb-2 border-b-2 border-blue-600 text-blue-600 font-medium">
+      Insurance Edits
+    </button>
+    <button id="btn-modifier-tab" onclick="switchTab('modifier-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
+      Modifier Rules
+    </button>
+    <button id="btn-client-tab" onclick="switchTab('client-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
+      Clients
+    </button>
   </div>
 
-</div>
+  <!-- Insurance Tab -->
+  <div id="insurance-tab" class="tab-content">
+    <form method="get" class="mb-4">
+  <div class="flex flex-wrap gap-4 text-sm items-center">
+    <select name="payer_name" class="p-2 border rounded">
+      <option value="">Payer Name</option>
+      {% for name in payer_names %}
+        <option value="{{ name }}" {% if request.GET.payer_name == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="payer_category" class="p-2 border rounded">
+      <option value="">Payer Category</option>
+      {% for cat in payer_categories %}
+        <option value="{{ cat }}" {% if request.GET.payer_category == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="edit_type" class="p-2 border rounded">
+      <option value="">Edit Category</option>
+      {% for et in edit_types %}
+        <option value="{{ et }}" {% if et == filters.edit_type %}selected{% endif %}>{{ et }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="edit_sub_category" class="p-2 border rounded">
+      <option value="">Sub Category</option>
+      {% for sub in edit_sub_categories %}
+        <option value="{{ sub }}" {% if request.GET.edit_sub_category == sub %}selected{% endif %}>{{ sub }}</option>
+      {% endfor %}
+    </select>
+
+    <input type="hidden" name="active_tab" id="active_tab_input" value="">
+
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>
+    <a href="{% url 'model_tables' %}#insurance-tab" class="px-4 py-2 bg-gray-400 text-white rounded">Clear</a>
+  </div>
+</form>
 
 
-  <!-- Tab 2: ModifierRule -->
-  <div id="modifier-tab" class="tab-content hidden">
     <div class="overflow-x-auto bg-white p-4 rounded shadow">
-      <h2 class="text-lg font-semibold mb-3">Modifier Rule Records</h2>
-      <table class="min-w-full text-sm table-auto border border-gray-300">
-        <thead class="bg-gray-200">
+      <h2 class="text-lg font-semibold mb-3">Insurance Edit Records</h2>
+      <table class="min-w-full table-fixed text-sm border border-gray-300">
+        <thead class="bg-gray-200 text-left">
           <tr>
-            <th class="p-2 text-left">Client</th>
-            <th class="p-2">Payer Name</th>
-            <th class="p-2">Category</th>
-            <th class="p-2">Code Type</th>
-            <th class="p-2">Codes</th>
-            <th class="p-2">Sub-Category</th>
-            <th class="p-2">Instruction</th>
-            <th class="p-2">Created By</th>
-            <th class="p-2">Created At</th>
+            <th class="p-2 w-32 border-r">Payer Name</th>
+            <th class="p-2 w-36 border-r">Payer Category</th>
+            <th class="p-2 w-40 border-r">Edits Category</th>
+            <th class="p-2 w-40 border-r">Edits Sub-Category</th>
+            <th class="p-2 w-[30rem]">Edits Instruction</th>
           </tr>
         </thead>
-        <tbody>
-          {% for rule in modifier_rules %}
+        <tbody class="align-top">
+          {% for edit in insurance_edits %}
             <tr class="border-t">
-              <td class="p-2">{{ rule.client.name }}</td>
-              <td class="p-2">{{ rule.payer_name }}</td>
-              <td class="p-2">{{ rule.payer_category }}</td>
-              <td class="p-2">{{ rule.code_type }}</td>
-              <td class="p-2">{{ rule.code_list }}</td>
-              <td class="p-2">{{ rule.sub_category }}</td>
-              <td class="p-2">{{ rule.modifier_instruction }}</td>
-              <td class="p-2">{{ rule.created_by.name }}</td>
-              <td class="p-2">{{ rule.created_at }}</td>
+              <td class="p-2 border-r">{{ edit.payer_name }}</td>
+              <td class="p-2 border-r">{{ edit.payer_category }}</td>
+              <td class="p-2 border-r">{{ edit.edit_type }}</td>
+              <td class="p-2 border-r">{{ edit.edit_sub_category }}</td>
+              <td class="p-2 whitespace-pre-wrap break-words">{{ edit.instruction }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-gray-500 p-4">No records found.</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -183,8 +375,109 @@
     </div>
   </div>
 
-  <!-- Tab 3: Clients -->
+  <!-- Modifier Tab -->
+  <div id="modifier-tab" class="tab-content hidden">
+    <form method="get" class="mb-4">
+  <div class="flex flex-wrap items-center gap-4 text-sm">
+
+    <!-- Payer Name -->
+    <select name="payer_name" class="p-2 border rounded min-w-[12rem]">
+      <option value="">Payer Name</option>
+      {% for name in mod_payer_names %}
+        <option value="{{ name }}" {% if filters.payer_name == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- Payer Category -->
+    <select name="payer_category" class="p-2 border rounded min-w-[12rem]">
+      <option value="">Payer Category</option>
+      {% for cat in mod_payer_categories %}
+        <option value="{{ cat }}" {% if filters.payer_category == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- Code Type -->
+    <select name="code_type" class="p-2 border rounded min-w-[12rem]">
+      <option value="">Code Type</option>
+      {% for ct in code_types %}
+        <option value="{{ ct }}" {% if filters.code_type == ct %}selected{% endif %}>{{ ct }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- Code List Search -->
+    <input type="text" name="code_list" placeholder="Search Code e.g. L0464 or E0870"
+           value="{{ filters.code_list }}" class="p-2 border rounded min-w-[15rem]" />
+
+    <!-- Sub Category Search -->
+    <input type="text" name="sub_category" placeholder="Search Sub Category"
+           value="{{ filters.sub_category }}" class="p-2 border rounded min-w-[14rem]" />
+
+    <!-- Hidden tab memory -->
+    <input type="hidden" name="active_tab" id="active_tab_input" value="modifier-tab">
+
+    <!-- Buttons -->
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>
+    <a href="{% url 'model_tables' %}#modifier-tab" class="px-4 py-2 bg-gray-400 text-white rounded">Clear</a>
+
+  </div>
+</form>
+
+
+    <div class="overflow-x-auto bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Modifier Rule Records</h2>
+      <table class="min-w-full table-fixed text-sm border border-gray-300">
+        <thead class="bg-gray-100 text-left">
+          <tr>
+            <th class="p-2 w-32 border-r">Payers</th>
+            <th class="p-2 w-36 border-r">Payer Category</th>
+            <th class="p-2 w-36 border-r">CPT Code Type</th>
+            <th class="p-2 w-80 border-r">CPT Code Section</th>
+            <th class="p-2 w-56 border-r">CPT Sub-Category</th>
+            <th class="p-2 w-[28rem]">CPT Based Modifier Instruction</th>
+          </tr>
+        </thead>
+        <tbody class="align-top">
+          {% for rule in modifier_rules %}
+            <tr class="border-t">
+              <td class="p-2 border-r">{{ rule.payer_name }}</td>
+              <td class="p-2 border-r">{{ rule.payer_category }}</td>
+              <td class="p-2 border-r">{{ rule.code_type }}</td>
+              <td class="p-2 border-r whitespace-pre-wrap break-words">{{ rule.code_list }}</td>
+              <td class="p-2 border-r">{{ rule.sub_category }}</td>
+              <td class="p-2 whitespace-pre-wrap break-words">{{ rule.modifier_instruction }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Clients Tab -->
   <div id="client-tab" class="tab-content hidden">
+
+    <form method="get" class="mb-4">
+  <div class="flex flex-wrap items-center gap-4 text-sm">
+
+    <!-- Search by Name -->
+    <input type="text" name="client_name" placeholder="Search Client Name"
+           value="{{ filters.client_name }}" class="p-2 border rounded min-w-[16rem]" />
+
+    <!-- Filter by Active Status -->
+    <select name="active" class="p-2 border rounded">
+      <option value="">All Status</option>
+      <option value="true" {% if filters.active == 'true' %}selected{% endif %}>Active</option>
+      <option value="false" {% if filters.active == 'false' %}selected{% endif %}>Inactive</option>
+    </select>
+
+    <!-- Tab memory -->
+    <input type="hidden" name="active_tab" value="client-tab">
+
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>
+    <a href="{% url 'model_tables' %}#client-tab" class="px-4 py-2 bg-gray-400 text-white rounded">Clear</a>
+  </div>
+</form>
+
+
     <div class="overflow-x-auto bg-white p-4 rounded shadow">
       <h2 class="text-lg font-semibold mb-3">Client List</h2>
       <table class="min-w-full text-sm table-auto border border-gray-300">
@@ -212,5 +505,15 @@
     </div>
   </div>
 
+  <!-- Script to store active tab in form -->
+  <script>
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', function () {
+        const currentTab = window.location.hash.replace('#', '') || 'insurance-tab';
+        form.querySelector('#active_tab_input').value = currentTab;
+      });
+    });
+  </script>
 </body>
 </html>
+

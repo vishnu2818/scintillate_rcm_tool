@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 
+
 def login_page(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -276,26 +277,40 @@ def manage_permissions(request):
     })
 
 
-from .models import InsuranceEdit, ModifierRule, Client
 from django.db.models import Q
+from django.shortcuts import render
+from .models import InsuranceEdit, ModifierRule, Client
 
 
 def model_tables_view(request):
     # Filters for InsuranceEdit
     insurance_filter = Q()
+
     client_id = request.GET.get('client', '').strip()
     if client_id:
         insurance_filter &= Q(client__id=client_id)
-    if 'payer_name' in request.GET:
-        insurance_filter &= Q(payer_name=request.GET['payer_name'])
-    if 'payer_category' in request.GET:
-        insurance_filter &= Q(payer_category=request.GET['payer_category'])
-    if 'edit_type' in request.GET:
-        insurance_filter &= Q(edit_type=request.GET['edit_type'])
-    if 'edit_sub_category' in request.GET:
-        insurance_filter &= Q(edit_sub_category=request.GET['edit_sub_category'])
 
-    insurance_edits = InsuranceEdit.objects.filter(insurance_filter)
+    payer_name = request.GET.get('payer_name', '').strip()
+    if payer_name:
+        insurance_filter &= Q(payer_name=payer_name)
+
+    payer_category = request.GET.get('payer_category', '').strip()
+    if payer_category:
+        insurance_filter &= Q(payer_category=payer_category)
+
+    edit_type = request.GET.get('edit_type', '')
+    if edit_type:
+        insurance_filter &= Q(edit_type__icontains=edit_type.strip())
+
+    edit_sub_category = request.GET.get('edit_sub_category', '').strip()
+    if edit_sub_category:
+        insurance_filter &= Q(edit_sub_category=edit_sub_category)
+
+    # Apply filter only if filters are valid, else return all
+    if insurance_filter:
+        insurance_edits = InsuranceEdit.objects.filter(insurance_filter)
+    else:
+        insurance_edits = InsuranceEdit.objects.all()
 
     # Dropdown options
     clients = Client.objects.all()
@@ -304,18 +319,70 @@ def model_tables_view(request):
     edit_types = InsuranceEdit.objects.values_list('edit_type', flat=True).distinct()
     edit_sub_categories = InsuranceEdit.objects.values_list('edit_sub_category', flat=True).distinct()
 
-    # ModifierRule filter
-    modifier_rules = ModifierRule.objects.all()
-    if 'code_list' in request.GET:
-        modifier_rules = modifier_rules.filter(code_list__icontains=request.GET['code_list'])
+    # # ModifierRule Filter
+    # modifier_rules = ModifierRule.objects.all()
+    # code_list_filter = request.GET.get('code_list', '').strip()
+    # if code_list_filter:
+    #     modifier_rules = modifier_rules.filter(code_list__icontains=code_list_filter)
+
+    # ModifierRule Filters
+    mod_filter = Q()
+
+    # Dropdown filters
+    mod_payer_name = request.GET.get('payer_name', '')
+    mod_payer_category = request.GET.get('payer_category', '')
+    code_type = request.GET.get('code_type', '')
+
+    if mod_payer_name:
+        mod_filter &= Q(payer_name=mod_payer_name)
+    if mod_payer_category:
+        mod_filter &= Q(payer_category=mod_payer_category)
+    if code_type:
+        mod_filter &= Q(code_type=code_type)
+
+    # Search filters
+    code_list = request.GET.get('code_list', '')
+    sub_category = request.GET.get('sub_category', '')
+
+    if code_list:
+        mod_filter &= Q(code_list__icontains=code_list)
+    if sub_category:
+        mod_filter &= Q(sub_category__icontains=sub_category)
+
+    # Fetch filtered results
+    modifier_rules = ModifierRule.objects.filter(mod_filter)
+
+    # For dropdowns
+    mod_payer_names = ModifierRule.objects.values_list('payer_name', flat=True).distinct()
+    mod_payer_categories = ModifierRule.objects.values_list('payer_category', flat=True).distinct()
+    code_types = ModifierRule.objects.values_list('code_type', flat=True).distinct()
+
+    # Client filters
+    client_filter = Q()
+    name = request.GET.get('client_name', '').strip()
+    active = request.GET.get('active', '').strip()
+
+    if name:
+        client_filter &= Q(name__icontains=name)
+
+    if active == 'true':
+        client_filter &= Q(active=True)
+    elif active == 'false':
+        client_filter &= Q(active=False)
+
+    clients = Client.objects.filter(client_filter)
 
     return render(request, 'model_tables.html', {
         'insurance_edits': insurance_edits,
-        'modifier_rules': modifier_rules,
         'clients': clients,
         'payer_names': payer_names,
         'payer_categories': payer_categories,
         'edit_types': edit_types,
         'edit_sub_categories': edit_sub_categories,
         'filters': request.GET,
+
+        'modifier_rules': modifier_rules,
+        'mod_payer_names': mod_payer_names,
+        'mod_payer_categories': mod_payer_categories,
+        'code_types': code_types,
     })

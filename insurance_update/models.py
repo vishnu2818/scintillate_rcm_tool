@@ -72,12 +72,14 @@ class InsuranceEdit(models.Model):
 
 class ModifierRule(models.Model):
     client = models.ForeignKey('Client', on_delete=models.CASCADE)
+
     payer_name = models.CharField(max_length=255)
     payer_category = models.CharField(max_length=255)
     code_type = models.CharField(max_length=100)
     code_list = models.TextField(help_text="Comma-separated list of codes")
     sub_category = models.CharField(max_length=255, blank=True, null=True)
     modifier_instruction = models.TextField()
+
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
