@@ -12,7 +12,14 @@ class InsuranceEditForm(forms.ModelForm):
 
 
 class ExcelDualUploadForm(forms.Form):
-    excel_file = forms.FileField(label="Upload Excel v2.2 File")
+    # excel_file = forms.FileField(label="Upload Excel v2.2 File")
+    excel_file = forms.FileField(
+        label="Choose Excel File",
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'block w-full text-sm text-gray-700 border border-gray-300 rounded-md p-2 cursor-pointer',
+            'accept': '.xls,.xlsx'  # Restrict to Excel file types
+        })
+    )
 
 
 class ClientForm(forms.ModelForm):

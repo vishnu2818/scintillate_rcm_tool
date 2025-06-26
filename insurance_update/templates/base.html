@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Scintillate RCM{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+    }
+    .transition-fast {
+      transition: all 0.3s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+<div class="flex-1 ml-64 flex flex-col min-h-screen">
+    <!-- Sidebar -->
+  <aside class="w-64 fixed top-0 left-0 h-full bg-white p-6 shadow-lg z-40">
+    <h2 class="text-2xl font-bold text-blue-700 mb-8">Scintillate RCM</h2>
+    <nav class="space-y-6">
+      <a href="{% url 'dashboard' %}" class="text-blue-600 font-semibold flex items-center"><span class="ml-2">Dashboard</span></a>
+      <a href="{% url 'excel_import' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Upload Excel</span></a>
+      <a href="{% url 'manage_permissions' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Admin Panel</span></a>
+      <a href="{% url 'model_tables' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Tables</span></a>
+    </nav>
+  </aside>
+
+    <!-- Topbar -->
+    <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-30">
+      <h1 class="text-xl font-bold text-blue-700">{% block header_title %}Dashboard{% endblock %}</h1>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-600 hidden md:block">👤 {{ request.user.name }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm">
+            Logout
+          </button>
+        </form>
+      </div>
+    </header>
+
+  <main class="p-6 flex-grow overflow-auto">
+  <div class="max-w-3xl mx-auto space-y-6">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+
+
+
+</div>
+
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('-translate-x-full');
+  }
+</script>
+
+</body>
+</html>

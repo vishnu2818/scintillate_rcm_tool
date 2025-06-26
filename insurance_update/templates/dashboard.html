@@ -6,78 +6,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    #sidebar {
-      transition: transform 0.3s ease-in-out;
-    }
-    .shadow-elegant {
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
     }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
 
-<!-- Full container -->
 <div class="flex h-screen overflow-hidden">
 
-  <!-- Sidebar (Fixed Left) -->
-  <aside id="sidebar" class="w-64 fixed top-0 left-0 h-full bg-white shadow-elegant p-6 z-40 transform -translate-x-full md:translate-x-0 md:static">
-    <h2 class="text-2xl font-bold text-blue-700 mb-10">📚 Scintillate RCM</h2>
-    <nav class="space-y-6 text-base">
-      <a href="{% url 'excel_import' %}" class="flex items-center text-gray-700 hover:text-blue-600">
-        📁 <span class="ml-2">Upload Excel</span>
-      </a>
-      <a href="{% url 'manage_permissions' %}" class="flex items-center text-gray-700 hover:text-blue-600">
-        🔐 <span class="ml-2">Admin Panel</span>
-      </a>
-      <a href="{% url 'model_tables' %}" class="flex items-center text-gray-700 hover:text-blue-600">
-        📋 <span class="ml-2">Tables</span>
-      </a>
+  <!-- Sidebar -->
+  <aside class="w-64 fixed top-0 left-0 h-full bg-white p-6 shadow-lg z-40">
+    <h2 class="text-2xl font-bold text-blue-700 mb-8">Scintillate RCM</h2>
+    <nav class="space-y-6">
+      <a href="{% url 'dashboard' %}" class="text-blue-600 font-semibold flex items-center"><span class="ml-2">Dashboard</span></a>
+      <a href="{% url 'excel_import' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Upload Excel</span></a>
+      <a href="{% url 'manage_permissions' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Admin Panel</span></a>
+      <a href="{% url 'model_tables' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Tables</span></a>
     </nav>
   </aside>
 
-  <!-- Main area pushed right by sidebar width -->
-  <div class="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen">
+  <!-- Main Content -->
+  <div class="flex-1 ml-64 flex flex-col min-h-screen">
 
-    <!-- Top Navbar -->
-    <header class="bg-white shadow-elegant px-6 py-4 flex justify-between items-center sticky top-0 z-30">
-      <button onclick="toggleSidebar()" class="md:hidden text-blue-700 text-2xl font-semibold">☰</button>
+    <!-- Topbar -->
+    <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-30">
+      <h1 class="text-xl font-bold text-blue-700">Dashboard</h1>
       <div class="flex items-center gap-4">
-        <span class="text-gray-700 font-medium hidden md:inline">👤 {{ request.user.name }}</span>
+        <span class="text-sm text-gray-600 hidden md:block">👤 {{ request.user.name }}</span>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
-          <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition">
+          <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm">
             Logout
           </button>
         </form>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="p-6 flex-grow overflow-auto">
-      <h1 class="text-3xl font-bold text-blue-700 mb-2">📊 Dashboard</h1>
-      <p class="text-gray-600 text-base mb-6">Welcome to Scintillate RCM. Manage insurance edits, modifier rules, and more.</p>
+    <!-- Dashboard Widgets -->
+    <main class="p-6 space-y-6">
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white shadow-elegant rounded-xl p-5">
-          <h2 class="text-xl font-semibold text-gray-800">🔍 Quick Overview</h2>
-          <p class="text-sm text-gray-600 mt-2">Upload Excel files or access admin controls easily using the sidebar.</p>
+      <!-- Greeting & Shortcut -->
+      <div class="bg-white rounded-xl shadow p-6">
+        <h2 class="text-2xl font-semibold text-blue-700">Welcome, {{ request.user.name }} 👋</h2>
+        <p class="text-sm text-gray-600 mt-2">Manage insurance edits, modifiers, clients, and more.</p>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="glass p-6 rounded-xl">
+          <h3 class="text-lg font-semibold text-gray-700">Insurance Edits</h3>
+          <p class="text-3xl font-bold text-blue-700 mt-2">{{ insurance_count }}</p>
         </div>
+        <div class="glass p-6 rounded-xl">
+          <h3 class="text-lg font-semibold text-gray-700">Modifier Rules</h3>
+          <p class="text-3xl font-bold text-purple-700 mt-2">{{ modifier_count }}</p>
+        </div>
+        <div class="glass p-6 rounded-xl">
+          <h3 class="text-lg font-semibold text-gray-700">Clients</h3>
+          <p class="text-3xl font-bold text-green-700 mt-2">{{ client_count }}</p>
+        </div>
+      </div>
 
-        <div class="bg-white shadow-elegant rounded-xl p-5">
-          <h2 class="text-xl font-semibold text-gray-800">👤 Logged in as</h2>
-          <p class="text-sm text-gray-600 mt-2">{{ request.user.name }} ({{ request.user.email }})</p>
+      <!-- Quick Actions -->
+      <div class="bg-white rounded-xl shadow p-6">
+        <h3 class="text-lg font-bold text-gray-700 mb-3">⚡ Quick Actions</h3>
+        <div class="space-x-4">
+          <a href="{% url 'excel_import' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition">📁 Upload Excel</a>
+          <a href="{% url 'model_tables' %}" class="bg-gray-100 text-blue-700 border border-blue-600 px-4 py-2 rounded-md text-sm hover:bg-blue-50 transition">📋 View Tables</a>
         </div>
       </div>
     </main>
 
+
+    <!-- Page content -->
+<!--    <main class="flex-grow flex items-center justify-center p-6 overflow-auto">-->
+<!--  <div class="max-w-2xl w-full space-y-6">-->
+<!--    {% block content %}{% endblock %}-->
+<!--  </div>-->
+<!--</main>-->
+
   </div>
 </div>
-
-<script>
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('-translate-x-full');
-  }
-</script>
 
 </body>
 </html>

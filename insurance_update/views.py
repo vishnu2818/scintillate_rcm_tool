@@ -54,12 +54,17 @@ def protected_view(request):
 def unified_dashboard(request):
     all_models = apps.get_models()
     model_names = [model.__name__.lower() for model in all_models if model._meta.app_label == 'insurance_update']
-
+    insurance_count = InsuranceEdit.objects.count()
+    modifier_count = ModifierRule.objects.count()
+    client_count = Client.objects.count()
     return render(request, 'dashboard.html', {
         'table_list': model_names,
         'clients': Client.objects.all(),
         'insurance_data': InsuranceEdit.objects.all(),
         'modifier_data': ModifierRule.objects.all(),
+        'insurance_count': insurance_count,
+        'modifier_count': modifier_count,
+        'client_count': client_count,
     })
 
 
@@ -92,15 +97,15 @@ def export_csv(request):
     return response
 
 
-@login_required
-def add_edit_insurance(request):
-    form = InsuranceEditForm(request.POST or None)
-    if form.is_valid():
-        instance = form.save(commit=False)
-        instance.created_by = request.user
-        instance.save()
-        return redirect('dashboard')
-    return render(request, 'add_edit.html', {'form': form})
+# @login_required
+# def add_edit_insurance(request):
+#     form = InsuranceEditForm(request.POST or None)
+#     if form.is_valid():
+#         instance = form.save(commit=False)
+#         instance.created_by = request.user
+#         instance.save()
+#         return redirect('dashboard')
+#     return render(request, 'add_edit.html', {'form': form})
 
 
 INSURANCE_HEADER_MAP = {
@@ -266,7 +271,7 @@ def manage_permissions(request):
                 updated += 1
                 print(f"{'Created' if created else 'Updated'} permission for {user.email} on {model['name']}")
 
-        messages.success(request, f"✅ {updated} permissions updated.")
+        messages.success(request, f"✅ {updated} Table permissions updated.")
         # ✅ Log the permission change activity
         ActivityLog.objects.create(
             user=request.user,

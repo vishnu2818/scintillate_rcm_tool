@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/protected/', protected_view, name='protected_view'),
     path('dashboard/', unified_dashboard, name='dashboard'),
     path('export/', export_csv, name='export_csv'),
-    path('add-edit/', add_edit_insurance, name='add_edit_insurance'),
+    # path('add-edit/', add_edit_insurance, name='add_edit_insurance'),
     path('import/excel/', unified_excel_import_view, name='excel_import'),
 
     path('table/<str:model>/', dynamic_table_view, name='table_view'),
