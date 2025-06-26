@@ -3,9 +3,18 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from .forms import *
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
+from .models import *
+import csv
+from django.http import HttpResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
+import pandas as pd
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.apps import apps
+from django.http import Http404
+from django.db.models import Q
 
 
 def login_page(request):
@@ -32,11 +41,6 @@ def protected_view(request):
     return Response({'message': f'Hello {request.user.email}, you accessed a protected API!'})
 
 
-from django.shortcuts import render
-from .models import InsuranceEdit, ModifierRule, Client
-from django.apps import apps
-
-
 def unified_dashboard(request):
     all_models = apps.get_models()
     model_names = [model.__name__.lower() for model in all_models if model._meta.app_label == 'insurance_update']
@@ -47,11 +51,6 @@ def unified_dashboard(request):
         'insurance_data': InsuranceEdit.objects.all(),
         'modifier_data': ModifierRule.objects.all(),
     })
-
-
-from django.apps import apps
-from django.http import Http404
-from django.shortcuts import render
 
 
 def dynamic_table_view(request, model):
@@ -68,11 +67,6 @@ def dynamic_table_view(request, model):
         'records': records,
         'fields': fields,
     })
-
-
-import csv
-from django.http import HttpResponse
-from django.contrib.admin.views.decorators import staff_member_required
 
 
 @staff_member_required
@@ -98,20 +92,6 @@ def add_edit_insurance(request):
         return redirect('dashboard')
     return render(request, 'add_edit.html', {'form': form})
 
-
-import pandas as pd
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .forms import ExcelDualUploadForm
-from .models import Client, InsuranceEdit, ModifierRule
-from django.contrib.auth.decorators import login_required
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-import pandas as pd
-from .forms import ExcelDualUploadForm
-from .models import Client, InsuranceEdit, ModifierRule
 
 INSURANCE_HEADER_MAP = {
     'PAYERS': 'payer_name',
@@ -219,54 +199,60 @@ def unified_excel_import_view(request):
     return render(request, 'excel_upload_dual.html', {'form': form})
 
 
-from django.shortcuts import render, redirect
-from django.apps import apps
-from django.contrib.auth import get_user_model
-from .models import ModelAccessPermission
-
 User = get_user_model()
 
 
 def manage_permissions(request):
-    app_label = 'insurance_update'  # Change to your app name
+    app_label = 'insurance_update'
     actions = ['read', 'add', 'edit', 'delete']
 
-    models = []
-    for model in apps.get_models():
-        if model._meta.app_label == app_label:
-            models.append({
-                'object': model,
-                'name': model.__name__,
-                'key': model.__name__.lower()
-            })
+    # ✅ Get all models in app and assign lowercase key
+    models = [
+        {'object': model, 'name': model.__name__, 'key': model.__name__.lower()}
+        for model in apps.get_models()
+        if model._meta.app_label == app_label
+    ]
 
     users = User.objects.all()
 
     if request.method == 'POST':
+        form_keys = set(request.POST.keys())
+        print("💡 Received form keys:", form_keys)
+
+        updated = 0
+
         for model in models:
             for user in users:
-                key = f"{model['key']}_{user.id}"
+                prefix = f"{model['key']}_{user.id}"
 
-                can_view = bool(request.POST.get(f"{key}_read"))
-                can_add = bool(request.POST.get(f"{key}_add"))
-                can_edit = bool(request.POST.get(f"{key}_edit"))
-                can_delete = bool(request.POST.get(f"{key}_delete"))
+                read_key = f"{prefix}_read"
+                add_key = f"{prefix}_add"
+                edit_key = f"{prefix}_edit"
+                delete_key = f"{prefix}_delete"
 
-                ModelAccessPermission.objects.update_or_create(
+                if not any(k in form_keys for k in [read_key, add_key, edit_key, delete_key]):
+                    continue
+
+                perm, created = ModelAccessPermission.objects.get_or_create(
                     user=user,
-                    model_name=model['name'],
-                    defaults={
-                        'can_view': can_view,
-                        'can_add': can_add,
-                        'can_edit': can_edit,
-                        'can_delete': can_delete,
-                    }
+                    model_name=model['name']
                 )
+                perm.can_view = read_key in form_keys
+                perm.can_add = add_key in form_keys
+                perm.can_edit = edit_key in form_keys
+                perm.can_delete = delete_key in form_keys
+                perm.save()
+
+                updated += 1
+                print(f"{'Created' if created else 'Updated'} permission for {user.email} on {model['name']}")
+
+        messages.success(request, f"✅ {updated} permissions updated.")
         return redirect('manage_permissions')
 
-    permissions = ModelAccessPermission.objects.all()
+    # ✅ Load current saved permission map
     permission_map = {
-        f"{perm.model_name.lower()}_{perm.user.id}": perm for perm in permissions
+        f"{p.model_name.lower()}_{p.user.id}": p
+        for p in ModelAccessPermission.objects.all()
     }
 
     return render(request, 'admin_permissions.html', {
@@ -275,11 +261,6 @@ def manage_permissions(request):
         'actions': actions,
         'permission_map': permission_map,
     })
-
-
-from django.db.models import Q
-from django.shortcuts import render
-from .models import InsuranceEdit, ModifierRule, Client
 
 
 def model_tables_view(request):
@@ -386,3 +367,196 @@ def model_tables_view(request):
         'mod_payer_categories': mod_payer_categories,
         'code_types': code_types,
     })
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
+from .models import InsuranceEdit
+from django.views.decorators.csrf import csrf_exempt
+
+# def insurance_create(request):
+#     if request.method == 'POST':
+#         InsuranceEdit.objects.create(
+#             payer_name=request.POST.get('payer_name'),
+#             payer_category=request.POST.get('payer_category'),
+#             edit_type=request.POST.get('edit_type'),
+#             edit_sub_category=request.POST.get('edit_sub_category'),
+#             version=request.POST.get('version'),
+#             instruction=request.POST.get('instruction'),
+#             created_by=request.user,
+#         )
+#     return redirect('model_tables')
+from django.views.decorators.http import require_http_methods
+
+
+@require_http_methods(["POST"])
+def insurance_create(request):
+    client, _ = Client.objects.get_or_create(name='Default Client')
+    InsuranceEdit.objects.create(
+        client=client,
+        payer_name=request.POST.get('payer_name'),
+        payer_category=request.POST.get('payer_category'),
+        edit_type=request.POST.get('edit_type'),
+        edit_sub_category=request.POST.get('edit_sub_category'),
+        version='v1.0',
+        instruction=request.POST.get('instruction'),
+        created_by=request.user
+    )
+    return JsonResponse({'success': True})
+
+
+def insurance_edit(request, pk):
+    insurance = get_object_or_404(InsuranceEdit, pk=pk)
+    if request.method == 'POST':
+        insurance.payer_name = request.POST.get('payer_name')
+        insurance.payer_category = request.POST.get('payer_category')
+        insurance.edit_type = request.POST.get('edit_type')
+        insurance.edit_sub_category = request.POST.get('edit_sub_category')
+        # insurance.version = request.POST.get('version')
+        insurance.instruction = request.POST.get('instruction')
+        insurance.save()
+        return redirect('model_tables')
+    return JsonResponse({
+        'id': insurance.id,
+        'payer_name': insurance.payer_name,
+        'payer_category': insurance.payer_category,
+        'edit_type': insurance.edit_type,
+        'edit_sub_category': insurance.edit_sub_category,
+        # 'version': insurance.version,
+        'instruction': insurance.instruction,
+    })
+
+
+@csrf_exempt
+def insurance_delete(request, pk):
+    insurance = get_object_or_404(InsuranceEdit, pk=pk)
+    insurance.delete()
+    return JsonResponse({'status': 'deleted'})
+
+
+# views.py
+
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods, require_POST
+from django.contrib.auth.decorators import login_required
+from .models import ModifierRule
+
+
+@login_required
+@require_POST
+def modifier_create(request):
+    """
+    Handle AJAX POST to create a new ModifierRule.
+    Expects payer_name, payer_category, code_type, code_list, sub_category, modifier_instruction.
+    """
+    client, _ = Client.objects.get_or_create(name='Default Client')
+    rule = ModifierRule.objects.create(
+        client=client,
+        payer_name=request.POST.get('payer_name', ''),
+        payer_category=request.POST.get('payer_category', ''),
+        code_type=request.POST.get('code_type', ''),
+        code_list=request.POST.get('code_list', ''),
+        sub_category=request.POST.get('sub_category', ''),
+        modifier_instruction=request.POST.get('modifier_instruction', ''),
+        created_by=request.user
+    )
+    return JsonResponse({'success': True, 'id': rule.id})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def modifier_edit(request, pk):
+    """
+    GET: Return JSON of existing ModifierRule (for populating the edit form).
+    POST: Update the ModifierRule and return success JSON.
+    """
+    rule = get_object_or_404(ModifierRule, pk=pk)
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'id': rule.id,
+            'payer_name': rule.payer_name,
+            'payer_category': rule.payer_category,
+            'code_type': rule.code_type,
+            'code_list': rule.code_list,
+            'sub_category': rule.sub_category,
+            'modifier_instruction': rule.modifier_instruction,
+        })
+
+    # POST → update
+    rule.payer_name = request.POST.get('payer_name', rule.payer_name)
+    rule.payer_category = request.POST.get('payer_category', rule.payer_category)
+    rule.code_type = request.POST.get('code_type', rule.code_type)
+    rule.code_list = request.POST.get('code_list', rule.code_list)
+    rule.sub_category = request.POST.get('sub_category', rule.sub_category)
+    rule.modifier_instruction = request.POST.get('modifier_instruction', rule.modifier_instruction)
+    rule.save()
+
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
+def modifier_delete(request, pk):
+    """
+    Handle AJAX POST to delete a ModifierRule.
+    """
+    rule = get_object_or_404(ModifierRule, pk=pk)
+    rule.delete()
+    return JsonResponse({'success': True})
+
+
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods, require_POST
+from django.contrib.auth.decorators import login_required
+from .models import Client
+
+
+@login_required
+@require_POST
+def client_create(request):
+    name = request.POST.get('name', '').strip()
+    active = request.POST.get('active') == 'true'
+
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Client name is required'}, status=400)
+
+    client = Client.objects.create(name=name, active=active)
+    return JsonResponse({'success': True, 'id': client.id})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def client_edit(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'id': client.id,
+            'name': client.name,
+            'active': client.active,
+        })
+
+    name = request.POST.get('name', '').strip()
+    active = request.POST.get('active') == 'true'
+
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Client name is required'}, status=400)
+
+    client.name = name
+    client.active = active
+    client.save()
+
+    return JsonResponse({'success': True})
+
+
+
+@login_required
+@require_POST
+def client_delete(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    client.delete()
+    return JsonResponse({'success': True})
+

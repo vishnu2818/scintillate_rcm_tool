@@ -1,97 +1,288 @@
+<!--{% load custom_filters %}-->
+<!--<!DOCTYPE html>-->
+<!--<html>-->
+<!--<head>-->
+<!--  <title>Manage Permissions</title>-->
+<!--  <script src="https://cdn.tailwindcss.com"></script>-->
+<!--</head>-->
+<!--<body class="bg-gray-100 p-6 text-gray-800">-->
+
+<!--  <h1 class="text-2xl font-bold text-blue-700 mb-4">🔐 Role-Based Access Control</h1>-->
+
+<!--  {% if messages %}-->
+<!--    {% for message in messages %}-->
+<!--      <div class="{% if message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %} p-2 rounded mb-3">-->
+<!--        {{ message }}-->
+<!--      </div>-->
+<!--    {% endfor %}-->
+<!--  {% endif %}-->
+
+<!--  <form method="post">-->
+<!--    {% csrf_token %}-->
+<!--    <div class="overflow-x-auto bg-white rounded shadow p-4">-->
+<!--      <table class="min-w-full text-sm table-auto border border-gray-300">-->
+<!--        <thead class="bg-gray-200">-->
+<!--          <tr>-->
+<!--            <th class="p-2 border text-left">Model / Action</th>-->
+<!--            {% for user in users %}-->
+<!--              <th class="p-2 border text-xs text-center">{{ user.name }}</th>-->
+<!--            {% endfor %}-->
+<!--          </tr>-->
+<!--        </thead>-->
+<!--        <tbody>-->
+<!--          {% for model in models %}-->
+<!--            {% for action in actions %}-->
+<!--              <tr class="border-t">-->
+<!--                <td class="p-2 border font-medium">{{ model.name }} – {{ action|title }}</td>-->
+<!--                {% for user in users %}-->
+<!--                  {% with key=model.key %}-->
+<!--                    {% with perm=permission_map|get_item:key|add:"_"|add:user.id|stringformat:"s" %}-->
+<!--                      {% with field="can_"|add:action %}-->
+<!--                        <td class="p-2 border text-center">-->
+<!--                          <input type="checkbox"-->
+<!--                                 name="{{ key }}_{{ user.id }}_{{ action }}"-->
+<!--                                 {% if perm|get_attr:field %}checked{% endif %}>-->
+<!--                          &lt;!&ndash; DEBUG: {{ key }}_{{ user.id }}_{{ action }} &ndash;&gt;-->
+<!--                        </td>-->
+<!--                      {% endwith %}-->
+<!--                    {% endwith %}-->
+<!--                  {% endwith %}-->
+<!--                {% endfor %}-->
+<!--              </tr>-->
+<!--            {% endfor %}-->
+<!--          {% endfor %}-->
+<!--        </tbody>-->
+<!--      </table>-->
+<!--    </div>-->
+
+<!--    <div class="mt-6 text-right">-->
+<!--      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded">-->
+<!--        💾 Save Permissions-->
+<!--      </button>-->
+<!--    </div>-->
+<!--  </form>-->
+
+<!--</body>-->
+<!--</html>-->
+
+<!--{% load custom_filters %}-->
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <title>Manage Permissions</title>-->
+<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--  <script src="https://cdn.tailwindcss.com"></script>-->
+<!--</head>-->
+<!--<body class="bg-gray-50 p-8 text-gray-800">-->
+
+<!--  <div class="max-w-5xl mx-auto">-->
+<!--    <h1 class="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">-->
+<!--      🔐 Role-Based Access Control-->
+<!--    </h1>-->
+
+<!--    {% if messages %}-->
+<!--      {% for message in messages %}-->
+<!--        <div class="{% if message.tags == 'success' %}bg-green-100 border border-green-300 text-green-800{% else %}bg-red-100 border border-red-300 text-red-800{% endif %} p-4 rounded mb-4">-->
+<!--          {{ message }}-->
+<!--        </div>-->
+<!--      {% endfor %}-->
+<!--    {% endif %}-->
+
+<!--    <form method="post">-->
+<!--      {% csrf_token %}-->
+
+<!--      &lt;!&ndash; User Selection &ndash;&gt;-->
+<!--      <div class="mb-6">-->
+<!--        <label for="userSelect" class="block mb-2 text-sm font-medium text-gray-700">Select a User</label>-->
+<!--        <select id="userSelect" name="selected_user"-->
+<!--                class="w-64 px-3 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring focus:border-blue-400">-->
+<!--          <option value="">&#45;&#45; Choose a User &#45;&#45;</option>-->
+<!--          {% for user in users %}-->
+<!--            <option value="{{ user.id }}">{{ user.name }}</option>-->
+<!--          {% endfor %}-->
+<!--        </select>-->
+<!--      </div>-->
+
+<!--      &lt;!&ndash; Permissions Table (hidden by default) &ndash;&gt;-->
+<!--      <div id="permissionsTable" class="hidden mt-6">-->
+<!--        <div class="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">-->
+<!--          <table class="min-w-full text-sm table-auto">-->
+<!--            <thead class="bg-gray-100">-->
+<!--              <tr>-->
+<!--                <th class="px-4 py-3 text-left font-semibold border-b border-gray-200">Model / Action</th>-->
+<!--                <th class="px-4 py-3 text-center font-semibold border-b border-gray-200">Allowed</th>-->
+<!--              </tr>-->
+<!--            </thead>-->
+<!--            <tbody>-->
+<!--              {% for model in models %}-->
+<!--                {% for action in actions %}-->
+<!--                  <tr class="hover:bg-gray-50 border-t border-gray-200">-->
+<!--                    <td class="px-4 py-2 font-medium text-gray-700">{{ model.name }} – {{ action|title }}</td>-->
+<!--                    <td class="px-4 py-2 text-center">-->
+<!--                      <input type="checkbox"-->
+<!--                             name="{{ model.key }}_selected_user_placeholder_{{ action }}"-->
+<!--                             class="accent-blue-600 h-4 w-4">-->
+<!--                    </td>-->
+<!--                  </tr>-->
+<!--                {% endfor %}-->
+<!--              {% endfor %}-->
+<!--            </tbody>-->
+<!--          </table>-->
+<!--        </div>-->
+
+<!--        <div class="mt-6 text-right">-->
+<!--          <button type="submit"-->
+<!--                  class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded shadow">-->
+<!--            💾 Save Permissions-->
+<!--          </button>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </form>-->
+<!--  </div>-->
+
+<!--  &lt;!&ndash; JavaScript to Show Permissions Table on User Select &ndash;&gt;-->
+<!--  <script>-->
+<!--    document.getElementById('userSelect').addEventListener('change', function () {-->
+<!--      const table = document.getElementById('permissionsTable');-->
+<!--      const checkboxes = table.querySelectorAll('input[type="checkbox"]');-->
+<!--      const userId = this.value;-->
+
+<!--      if (userId) {-->
+<!--        table.classList.remove('hidden');-->
+
+<!--        // Update checkbox names dynamically-->
+<!--        checkboxes.forEach(cb => {-->
+<!--          const name = cb.getAttribute('name');-->
+<!--          if (name.includes('selected_user_placeholder')) {-->
+<!--            cb.setAttribute('name', name.replace('selected_user_placeholder', userId));-->
+<!--          }-->
+<!--        });-->
+<!--      } else {-->
+<!--        table.classList.add('hidden');-->
+<!--      }-->
+<!--    });-->
+<!--  </script>-->
+
+<!--</body>-->
+<!--</html>-->
+
+
 {% load custom_filters %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Model Permissions</title>
+  <title>Manage Permissions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6 text-gray-800">
-  <h1 class="text-2xl font-bold text-blue-700 mb-6">🔐 Role-Based Model Permissions</h1>
+<body class="bg-gray-50 p-8 text-gray-800">
 
-  <form method="post">
-    {% csrf_token %}
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
+      🔐 Role-Based Access Control
+    </h1>
 
-    {% for model in models %}
-      <div class="bg-white p-4 mb-6 rounded-lg shadow-md">
-        <h2 class="text-lg font-semibold mb-3 text-gray-800">{{ model.name }}</h2>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="{% if message.tags == 'success' %}bg-green-100 border border-green-300 text-green-800{% else %}bg-red-100 border border-red-300 text-red-800{% endif %} p-4 rounded mb-4">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
 
-        <table class="min-w-full text-sm table-auto border">
-          <thead>
-            <tr class="bg-gray-200">
-              <th class="p-2 text-left">User</th>
-              {% for action in actions %}
-                <th class="p-2 text-center capitalize">{{ action }}</th>
-              {% endfor %}
-              <th class="p-2 text-center">Full Access</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for user in users %}
-              {% with key=model.key|add:"_"|add:user.id|stringformat:"s" %}
-                {% with perm=permission_map|get_item:key %}
-                  <tr class="border-t">
-                    <td class="p-2">{{ user.name }}</td>
+    <form method="post">
+      {% csrf_token %}
 
-                    {% for action in actions %}
-                      <td class="p-2 text-center">
-                        <input type="checkbox"
-                               name="{{ key }}_{{ action }}"
-                               class="perm-checkbox {{ key }}_perm"
-                               data-key="{{ key }}"
-                               data-action="{{ action }}"
-                               {% if perm and perm|get_attr:"can_"|add:action %}checked{% endif %}>
-                      </td>
-                    {% endfor %}
+      <!-- User Selection -->
+      <div class="mb-6">
+        <label for="userSelect" class="block mb-2 text-sm font-medium text-gray-700">Select a User</label>
+        <select id="userSelect" name="selected_user"
+                class="w-64 px-3 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring focus:border-blue-400">
+          <option value="">-- Choose a User --</option>
+          {% for user in users %}
+            <option value="{{ user.id }}">{{ user.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-                    <td class="p-2 text-center">
+      <!-- Permissions Table -->
+      <div id="permissionsTable" class="hidden mt-6">
+        <div class="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
+          <table class="min-w-full text-sm table-auto">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-4 py-3 text-left font-semibold border-b border-gray-200">Model / Action</th>
+                <th class="px-4 py-3 text-center font-semibold border-b border-gray-200">
+                  <input type="checkbox" id="selectAll" class="accent-blue-600 h-4 w-4">
+                  <label for="selectAll" class="text-xs block text-gray-600">Select All</label>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for model in models %}
+                {% for action in actions %}
+                  <tr class="hover:bg-gray-50 border-t border-gray-200">
+                    <td class="px-4 py-2 font-medium text-gray-700">{{ model.name }} – {{ action|title }}</td>
+                    <td class="px-4 py-2 text-center">
                       <input type="checkbox"
-                             class="full-access-checkbox"
-                             data-key="{{ key }}">
+                             name="{{ model.key }}_selected_user_placeholder_{{ action }}"
+                             data-original-name="{{ model.key }}_selected_user_placeholder_{{ action }}"
+                             class="permission-checkbox accent-blue-600 h-4 w-4">
                     </td>
                   </tr>
-                {% endwith %}
-              {% endwith %}
-            {% endfor %}
-          </tbody>
-        </table>
+                {% endfor %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 text-right">
+          <button type="submit"
+                  class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded shadow">
+            💾 Save Permissions
+          </button>
+        </div>
       </div>
-    {% endfor %}
+    </form>
+  </div>
 
-    <button type="submit" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-      💾 Save Permissions
-    </button>
-  </form>
-
+  <!-- JavaScript -->
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Loop through each "Full Access" checkbox
-    document.querySelectorAll('.full-access-checkbox').forEach(fullCheckbox => {
-      const key = fullCheckbox.dataset.key;
+    const userSelect = document.getElementById('userSelect');
+    const permissionTable = document.getElementById('permissionsTable');
+    const selectAllCheckbox = document.getElementById('selectAll');
 
-      // Only get checkboxes in the same row
-      const row = fullCheckbox.closest('tr');
-      const checkboxes = row.querySelectorAll(`.perm-checkbox`);
+    userSelect.addEventListener('change', function () {
+      const userId = this.value;
+      const checkboxes = permissionTable.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
 
-      // Initialize full access checkbox based on row permissions
-      const allChecked = [...checkboxes].every(cb => cb.checked);
-      fullCheckbox.checked = allChecked;
+      if (userId) {
+        permissionTable.classList.remove('hidden');
 
-      // When full access is clicked
-      fullCheckbox.addEventListener('change', function () {
-        checkboxes.forEach(cb => cb.checked = fullCheckbox.checked);
-      });
-
-      // When any of the individual checkboxes is changed
-      checkboxes.forEach(cb => {
-        cb.addEventListener('change', function () {
-          const allNowChecked = [...checkboxes].every(c => c.checked);
-          fullCheckbox.checked = allNowChecked;
+        checkboxes.forEach(cb => {
+          let original = cb.getAttribute('data-original-name');
+          if (!original) {
+            original = cb.getAttribute('name');
+            cb.setAttribute('data-original-name', original);
+          }
+          const newName = original.replace('selected_user_placeholder', userId);
+          cb.setAttribute('name', newName);
         });
+      } else {
+        permissionTable.classList.add('hidden');
+      }
+    });
+
+    // Select All Logic
+    selectAllCheckbox.addEventListener('change', function () {
+      const allCheckboxes = document.querySelectorAll('.permission-checkbox');
+      allCheckboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
       });
     });
-  });
-</script>
+  </script>
 
 </body>
 </html>

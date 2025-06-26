@@ -17,4 +17,16 @@ urlpatterns = [
     path('table/<str:model>/', dynamic_table_view, name='table_view'),
     path('permissions/', manage_permissions, name='manage_permissions'),
     path('model-tables/', model_tables_view, name='model_tables'),
+
+    path('insurance/create/', insurance_create, name='insurance_create'),
+    path('insurance/edit/<int:pk>/', insurance_edit, name='insurance_edit'),
+    path('insurance/delete/<int:pk>/', insurance_delete, name='insurance_delete'),
+
+    path('modifier/create/', modifier_create, name='modifier_create'),
+    path('modifier/edit/<int:pk>/', modifier_edit, name='modifier_edit'),
+    path('modifier/delete/<int:pk>/', modifier_delete, name='modifier_delete'),
+
+    path('client/create/', client_create, name='client_create'),
+    path('client/edit/<int:pk>/', client_edit,   name='client_edit'),
+    path('client/delete/<int:pk>/', client_delete, name='client_delete'),
 ]
