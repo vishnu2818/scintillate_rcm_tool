@@ -5,69 +5,82 @@
   <title>Tables</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-  // === TAB SWITCHER ===
   function switchTab(tabId) {
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // Hide all, show selected
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
     document.getElementById(tabId).classList.remove('hidden');
 
-    // Button styling
+    // Update button styles
     document.querySelectorAll('.tab-button').forEach(btn => {
-      btn.classList.remove('border-blue-600','text-blue-600');
-      btn.classList.add('border-transparent','text-gray-600');
+      btn.classList.remove('border-blue-600', 'text-blue-600');
+      btn.classList.add('border-transparent', 'text-gray-600');
     });
-    const activeBtn = document.getElementById('btn-' + tabId);
-    activeBtn.classList.add('border-blue-600','text-blue-600');
-    activeBtn.classList.remove('border-transparent','text-gray-600');
 
-    // Update URL hash
-    window.location.hash = tabId;
+    const activeBtn = document.getElementById('btn-' + tabId);
+    if (activeBtn) {
+      activeBtn.classList.add('border-blue-600', 'text-blue-600');
+      activeBtn.classList.remove('border-transparent', 'text-gray-600');
+    }
+
+    // Save active tab
+    localStorage.setItem('activeTab', tabId);
   }
 
-  // === ON PAGE LOAD: pick up active_tab GET or hash, default to insurance-tab ===
-  document.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    let active = params.get('active_tab') || window.location.hash.slice(1) || 'insurance-tab';
-    switchTab(active);
-  });
+  document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabFromURL = urlParams.get('active_tab');
+    const savedTab = localStorage.getItem('activeTab');
 
-  // === PRESERVE TAB IN FILTER FORMS ===
-  document.querySelectorAll('form[method="get"]').forEach(form => {
-    // add hidden input if missing
-    if (!form.querySelector('input[name="active_tab"]')) {
-      const hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'active_tab';
-      hidden.id   = 'active_tab_input';
-      form.appendChild(hidden);
+    const tabToShow = tabFromURL || savedTab || 'insurance-tab';
+    switchTab(tabToShow);
+
+    // Save active_tab back to localStorage if it comes from URL
+    if (tabFromURL) {
+      localStorage.setItem('activeTab', tabFromURL);
     }
-    form.addEventListener('submit', () => {
-      const current = document.querySelector('.tab-content:not(.hidden)').id;
-      form.querySelector('input[name="active_tab"]').value = current;
+
+    // Ensure hidden field exists in all filter forms
+    document.querySelectorAll('form[method="get"]').forEach(form => {
+      if (!form.querySelector('input[name="active_tab"]')) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'active_tab';
+        hidden.value = tabToShow;
+        form.appendChild(hidden);
+      }
+
+      form.addEventListener('submit', () => {
+        const current = document.querySelector('.tab-content:not(.hidden)').id;
+        form.querySelector('input[name="active_tab"]').value = current;
+      });
     });
   });
 </script>
 
 
+
 </head>
 <body class="bg-gray-100 p-6 text-gray-800">
 
-  <h1 class="text-2xl font-bold mb-6 text-blue-700">Model Tables</h1>
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-blue-700">Model Tables</h1>
+    <a href="{% url 'dashboard' %}" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm">
+      Back to Dashboard
+    </a>
+  </div>
 
   <!-- Tab Buttons -->
   <div class="flex border-b border-gray-300 mb-6 space-x-6">
-    <button id="btn-insurance-tab" onclick="switchTab('insurance-tab')" class="tab-button pb-2 border-b-2 border-blue-600 text-blue-600 font-medium">
-      Insurance Edits
-    </button>
-    <button id="btn-modifier-tab" onclick="switchTab('modifier-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
-      Modifier Rules
-    </button>
-    <button id="btn-client-tab" onclick="switchTab('client-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
-      Clients
-    </button>
+    <button id="btn-insurance-tab" onclick="switchTab('insurance-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
+  Insurance Edits
+</button>
+<button id="btn-modifier-tab" onclick="switchTab('modifier-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
+  Modifier Rules
+</button>
+<button id="btn-client-tab" onclick="switchTab('client-tab')" class="tab-button pb-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600">
+  Clients
+</button>
+
   </div>
 
   <!-- Insurance Tab -->
@@ -114,8 +127,8 @@
   <!-- Header with Add button -->
   <h2 class="text-lg font-semibold mb-3 flex justify-between items-center">
     <span>Insurance Edit Records</span>
-    <button onclick="openInsuranceModal()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 text-sm">
-      + Add Insurance
+    <button onclick="openInsuranceModal()" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm">
+      Add Insurance
     </button>
   </h2>
 
@@ -388,7 +401,7 @@ document.getElementById('insuranceForm').addEventListener('submit', function(e) 
     <h2 class="text-lg font-semibold mb-3 flex justify-between items-center">
       <span>Modifier Rule Records</span>
       <button onclick="openModifierModal()" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm">
-        + Add Modifier
+        Add Modifier
       </button>
     </h2>
 
@@ -397,8 +410,8 @@ document.getElementById('insuranceForm').addEventListener('submit', function(e) 
         <tr>
           <th class="p-2 border-r">Payer Name</th>
           <th class="p-2 border-r">Payer Category</th>
-         <th class="p-2 w-56 border-r">CPT Code Type</th>
-    <th class="p-2 w-64 border-r">CPT Code Section</th>
+          <th class="p-2 w-56 border-r">CPT Code Type</th>
+          <th class="p-2 w-64 border-r">CPT Code Section</th>
           <th class="p-2 border-r">CPT Sub-Category</th>
           <th class="p-2">Actions</th>
         </tr>
@@ -619,8 +632,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-
-  <!-- Clients Tab -->
+<!-- Clients Tab -->
 <div id="client-tab" class="tab-content hidden">
   <!-- 1) Filter Form -->
   <form method="get" class="mb-4">
@@ -642,8 +654,8 @@ document.addEventListener("DOMContentLoaded", function () {
   <div class="overflow-x-auto bg-white p-4 rounded shadow mb-6">
     <div class="flex justify-between items-center mb-3">
       <h2 class="text-lg font-semibold">Client List</h2>
-      <button onclick="openClientModal()" class="bg-indigo-600 text-white px-4 py-1 rounded hover:bg-indigo-700 text-sm">
-        + Add Client
+      <button onclick="openClientModal()" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm">
+        Add Client
       </button>
     </div>
     <table class="min-w-full table-auto text-sm border border-gray-300">
@@ -677,7 +689,7 @@ document.addEventListener("DOMContentLoaded", function () {
   </div>
 </div>
 
-<!-- 3) Create/Edit Client Modal -->
+<!-- Create/Edit Client Modal -->
 <div id="clientModal" class="fixed inset-0 flex bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
   <div class="bg-white p-6 rounded shadow max-w-md w-full">
     <h3 id="clientModalTitle" class="text-lg font-semibold mb-4">Add Client</h3>
@@ -697,8 +709,7 @@ document.addEventListener("DOMContentLoaded", function () {
   </div>
 </div>
 
-
-<!-- 4) Shared Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal -->
 <div id="deleteModal"
      class="fixed inset-0 flex bg-gray-900 bg-opacity-50 hidden items-start justify-center pt-20 z-50">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -712,10 +723,9 @@ document.addEventListener("DOMContentLoaded", function () {
   </div>
 </div>
 
-<!-- 5) JavaScript Handlers -->
+<!-- JavaScript Handlers -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  // ✅ Create Modal
   function openClientModal() {
     document.getElementById('clientForm').reset();
     document.getElementById('clientId').value = '';
@@ -740,12 +750,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
 
-  // Expose functions to global scope for inline onclick=""
-  window.openClientModal = openClientModal;
-  window.openClientEditModal = openClientEditModal;
-  window.closeClientModal = closeClientModal;
-
-  // ✅ Submit Form Handler
   document.getElementById('clientForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const id = document.getElementById('clientId').value;
@@ -764,15 +768,14 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        closeClientModal();
-        location.reload();
-      } else {
+  closeClientModal();
+  location.reload();
+} else {
         alert('Save failed');
       }
     });
   });
 
-  // ✅ Delete Modal
   let deleteUrl = '';
   function openDeleteModal(url, msg) {
     deleteUrl = url;
@@ -785,9 +788,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('deleteModal').classList.add('hidden');
   }
 
-  window.openDeleteModal = openDeleteModal;
-  window.closeDeleteModal = closeDeleteModal;
-
   document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
     fetch(deleteUrl, {
       method: 'POST',
@@ -795,13 +795,49 @@ document.addEventListener("DOMContentLoaded", function () {
     }).then(r => {
       if (r.ok) {
         closeDeleteModal();
-        location.reload();
+        location.reload();  // Keeps tab using localStorage
       } else {
         alert('Delete failed');
       }
     });
   });
+
+  // Expose to window scope
+  window.openClientModal = openClientModal;
+  window.closeClientModal = closeClientModal;
+  window.openClientEditModal = openClientEditModal;
+  window.openDeleteModal = openDeleteModal;
+  window.closeDeleteModal = closeDeleteModal;
 });
+</script>
+
+<!-- Tab Switcher + Restore -->
+<script>
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    document.getElementById(tabId).classList.remove('hidden');
+
+    // Visual tab button highlight
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('border-blue-600', 'text-blue-600'));
+    const activeBtn = document.getElementById('btn-' + tabId);
+    if (activeBtn) activeBtn.classList.add('border-blue-600', 'text-blue-600');
+
+    // Save tab
+    localStorage.setItem('activeTab', tabId);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabFromURL = urlParams.get('active_tab');
+    const savedTab = localStorage.getItem('activeTab');
+
+    const tabToShow = tabFromURL || savedTab || 'client-tab';
+    switchTab(tabToShow);
+
+    if (tabFromURL) {
+      localStorage.setItem('activeTab', tabFromURL);
+    }
+  });
 </script>
 
 </body>
