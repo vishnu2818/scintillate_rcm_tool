@@ -97,3 +97,24 @@ class ModelAccessPermission(models.Model):
 
     class Meta:
         unique_together = ('user', 'model_name')
+
+
+class ActivityLog(models.Model):
+    ACTION_CHOICES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('view', 'View'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    target_type = models.CharField(max_length=50)
+    target_id = models.PositiveIntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.action} on {self.target_type} ({self.target_id})"

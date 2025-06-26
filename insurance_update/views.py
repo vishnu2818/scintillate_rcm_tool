@@ -28,6 +28,16 @@ def login_page(request):
         user = authenticate(request, email=email, password=password)
         if user:
             login(request, user)
+
+            # ✅ Log the login activity
+            ActivityLog.objects.create(
+                user=user,
+                action="Login",
+                target_type="User",
+                target_id=user.id,
+                details="User logged in successfully"
+            )
+
             return redirect('dashboard')
         else:
             messages.error(request, 'Invalid email or password.')
@@ -147,6 +157,16 @@ def unified_excel_import_view(request):
             request.session.pop('insurance_data', None)
             request.session.pop('modifier_data', None)
             messages.success(request, "Excel data imported successfully.")
+
+            # ✅ Log the import activity
+            ActivityLog.objects.create(
+                user=request.user,
+                action="Import",
+                target_type="Excel",
+                target_id=request.user.id,
+                details="User imported Excel data successfully"
+            )
+
             return redirect('dashboard')
 
         else:
@@ -247,6 +267,14 @@ def manage_permissions(request):
                 print(f"{'Created' if created else 'Updated'} permission for {user.email} on {model['name']}")
 
         messages.success(request, f"✅ {updated} permissions updated.")
+        # ✅ Log the permission change activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Permission Update",
+            target_type="Permission",
+            target_id=request.user.id,
+            details="User updated access permissions."
+        )
         return redirect('manage_permissions')
 
     # ✅ Load current saved permission map
@@ -353,6 +381,9 @@ def model_tables_view(request):
 
     clients = Client.objects.filter(client_filter)
 
+    # activity_logs = ActivityLog.objects.select_related('user').order_by('-timestamp')[:100]
+    activity_logs = ActivityLog.objects.order_by('-timestamp')[:100]
+
     return render(request, 'model_tables.html', {
         'insurance_edits': insurance_edits,
         'clients': clients,
@@ -366,6 +397,7 @@ def model_tables_view(request):
         'mod_payer_names': mod_payer_names,
         'mod_payer_categories': mod_payer_categories,
         'code_types': code_types,
+        'activity_logs': activity_logs,
     })
 
 
@@ -373,34 +405,32 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import InsuranceEdit
 from django.views.decorators.csrf import csrf_exempt
-
-# def insurance_create(request):
-#     if request.method == 'POST':
-#         InsuranceEdit.objects.create(
-#             payer_name=request.POST.get('payer_name'),
-#             payer_category=request.POST.get('payer_category'),
-#             edit_type=request.POST.get('edit_type'),
-#             edit_sub_category=request.POST.get('edit_sub_category'),
-#             version=request.POST.get('version'),
-#             instruction=request.POST.get('instruction'),
-#             created_by=request.user,
-#         )
-#     return redirect('model_tables')
 from django.views.decorators.http import require_http_methods
 
 
 @require_http_methods(["POST"])
 def insurance_create(request):
+
     client, _ = Client.objects.get_or_create(name='Default Client')
-    InsuranceEdit.objects.create(
+    payer_name = request.POST.get('payer_name')
+    insurance = InsuranceEdit.objects.create(
         client=client,
-        payer_name=request.POST.get('payer_name'),
+        payer_name=payer_name,
         payer_category=request.POST.get('payer_category'),
         edit_type=request.POST.get('edit_type'),
         edit_sub_category=request.POST.get('edit_sub_category'),
         version='v1.0',
         instruction=request.POST.get('instruction'),
         created_by=request.user
+    )
+
+    # ✅ Log the creation
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Create",
+        target_type="InsuranceEdit",
+        target_id=insurance.id,
+        details=f"Created insurance: {payer_name}"
     )
     return JsonResponse({'success': True})
 
@@ -415,6 +445,16 @@ def insurance_edit(request, pk):
         # insurance.version = request.POST.get('version')
         insurance.instruction = request.POST.get('instruction')
         insurance.save()
+
+        # ✅ Log the update
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Edit",
+            target_type="InsuranceEdit",
+            target_id=insurance.id,
+            details=f"Edited insurance: {insurance.payer_name}"
+        )
+
         return redirect('model_tables')
     return JsonResponse({
         'id': insurance.id,
@@ -430,7 +470,19 @@ def insurance_edit(request, pk):
 @csrf_exempt
 def insurance_delete(request, pk):
     insurance = get_object_or_404(InsuranceEdit, pk=pk)
+    insurance_name = insurance.payer_name
+    insurance_id = insurance.id
     insurance.delete()
+
+    # ✅ Log the deletion
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Delete",
+        target_type="InsuranceEdit",
+        target_id=insurance_id,
+        details=f"Deleted insurance: {insurance_name}"
+    )
+
     return JsonResponse({'status': 'deleted'})
 
 
@@ -461,6 +513,16 @@ def modifier_create(request):
         modifier_instruction=request.POST.get('modifier_instruction', ''),
         created_by=request.user
     )
+
+    # ✅ Log creation
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Create",
+        target_type="ModifierRule",
+        target_id=rule.id,
+        details=f"Created modifier for payer: {rule.payer_name}"
+    )
+
     return JsonResponse({'success': True, 'id': rule.id})
 
 
@@ -493,6 +555,15 @@ def modifier_edit(request, pk):
     rule.modifier_instruction = request.POST.get('modifier_instruction', rule.modifier_instruction)
     rule.save()
 
+    # ✅ Log edit
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Edit",
+        target_type="ModifierRule",
+        target_id=rule.id,
+        details=f"Edited modifier for payer: {rule.payer_name}"
+    )
+
     return JsonResponse({'success': True})
 
 
@@ -503,7 +574,19 @@ def modifier_delete(request, pk):
     Handle AJAX POST to delete a ModifierRule.
     """
     rule = get_object_or_404(ModifierRule, pk=pk)
+    rule_id = rule.id
+    payer_name = rule.payer_name
     rule.delete()
+
+    # ✅ Log delete
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Delete",
+        target_type="ModifierRule",
+        target_id=rule_id,
+        details=f"Deleted modifier for payer: {payer_name}"
+    )
+
     return JsonResponse({'success': True})
 
 
@@ -524,6 +607,14 @@ def client_create(request):
         return JsonResponse({'success': False, 'error': 'Client name is required'}, status=400)
 
     client = Client.objects.create(name=name, active=active)
+    # ✅ Log the creation
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Create",
+        target_type="Client",
+        target_id=client.id,
+        details=f"Created client: {client.name}"
+    )
     return JsonResponse({'success': True, 'id': client.id})
 
 
@@ -549,6 +640,15 @@ def client_edit(request, pk):
     client.active = active
     client.save()
 
+    # ✅ Log the edit
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Edit",
+        target_type="Client",
+        target_id=client.id,
+        details=f"Updated client: {client.name}"
+    )
+
     return JsonResponse({'success': True})
 
 
@@ -557,6 +657,17 @@ def client_edit(request, pk):
 @require_POST
 def client_delete(request, pk):
     client = get_object_or_404(Client, pk=pk)
+    client_id = client.id
+    client_name = client.name
     client.delete()
-    return JsonResponse({'success': True})
 
+    # ✅ Log the deletion
+    ActivityLog.objects.create(
+        user=request.user,
+        action="Delete",
+        target_type="Client",
+        target_id=client_id,
+        details=f"Deleted client: {client_name}"
+    )
+
+    return JsonResponse({'success': True})
