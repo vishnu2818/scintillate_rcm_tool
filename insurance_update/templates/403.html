@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>403 - Access Denied | Scintillate RCM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .fade-in {
+      animation: fadeInUp 1s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-red-50 via-orange-100 to-white text-gray-800 min-h-screen flex flex-col items-center justify-center px-4">
+
+  <div class="text-center fade-in">
+    <div class="text-[10rem] font-extrabold text-red-500 float">403</div>
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mt-4">Access Denied</h1>
+    <p class="text-gray-600 text-base md:text-lg mt-2 mb-6">You don’t have permission to view this page.</p>
+
+    <a href="/" class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm px-6 py-3 rounded-full shadow-md transition transform hover:scale-105">
+      🔐 Back to Login
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <footer class="absolute bottom-4 text-xs text-gray-500 text-center w-full">
+    Developed by <strong>
+      <a href="https://github.com/vishnu2818" target="_blank" class="text-red-600 underline hover:text-red-800 transition">
+        Vinu
+      </a>
+    </strong>
+  </footer>
+
+</body>
+</html>

@@ -118,3 +118,29 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.action} on {self.target_type} ({self.target_id})"
+
+
+class Scenario(models.Model):
+    scenario_id = models.IntegerField()
+    scenario_code = models.CharField(max_length=100)
+    scenario_category = models.CharField(max_length=100)
+    scenario_sub_category = models.CharField(max_length=100)
+    scenario_type = models.CharField(max_length=100)
+    scenario_instructions = models.TextField()
+    scenario_sow_id = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.scenario_code
+
+
+class DxCategory(models.Model):
+    dxcategory_id = models.IntegerField()
+    dxcategory_code = models.CharField(max_length=100)
+    dxcategory_category = models.CharField(max_length=100)
+    dxcategory_sub_category = models.CharField(max_length=100)
+    dxcategory_type = models.CharField(max_length=100)
+    dxcategory_instructions = models.TextField()
+    dxcategory_sow_id = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.dxcategory_code

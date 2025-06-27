@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+
+from .check_permission import check_model_permission
 from .forms import *
 from django.contrib.auth import authenticate, login
 from .models import *
@@ -15,6 +17,28 @@ from django.contrib.auth import get_user_model
 from django.apps import apps
 from django.http import Http404
 from django.db.models import Q
+import json
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.apps import apps
+from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.auth import get_user_model
+from .models import ModelAccessPermission, ActivityLog
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
+from .models import InsuranceEdit
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods, require_POST
+from django.contrib.auth.decorators import login_required
+from .models import Client
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods, require_POST
+from django.contrib.auth.decorators import login_required
+from .models import ModifierRule
 
 
 def login_page(request):
@@ -51,36 +75,54 @@ def protected_view(request):
     return Response({'message': f'Hello {request.user.email}, you accessed a protected API!'})
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.apps import apps
+from .models import InsuranceEdit, ModifierRule, Client, ActivityLog, ModelAccessPermission
+
+@login_required
 def unified_dashboard(request):
     all_models = apps.get_models()
     model_names = [model.__name__.lower() for model in all_models if model._meta.app_label == 'insurance_update']
+
     insurance_count = InsuranceEdit.objects.count()
     modifier_count = ModifierRule.objects.count()
     client_count = Client.objects.count()
+    dxcategory_count = DxCategory.objects.count()
+    scenario_count = Scenario.objects.count()
+
+    # ActivityLog counts
+    create_count = ActivityLog.objects.filter(action="Create").count()
+    edit_count = ActivityLog.objects.filter(action="Edit").count()
+    delete_count = ActivityLog.objects.filter(action="Delete").count()
+    total_activity = create_count + edit_count + delete_count or 1
+
+    create_pct = round((create_count / total_activity) * 100, 2)
+    edit_pct = round((edit_count / total_activity) * 100, 2)
+    delete_pct = round((delete_count / total_activity) * 100, 2)
+
+    stat_cards = [
+        {'title': 'Insurance Edits', 'icon': 'https://cdn.lordicon.com/vduvxizq.json', 'color': 'blue',
+         'count': insurance_count},
+        {'title': 'Modifier Rules', 'icon': 'https://cdn.lordicon.com/egmlnyku.json', 'color': 'purple',
+         'count': modifier_count},
+        {'title': 'Clients', 'icon': 'https://cdn.lordicon.com/kthelypq.json', 'color': 'green', 'count': client_count},
+        {'title': 'Scenario Records', 'icon': 'https://cdn.lordicon.com/egiwmiit.json', 'color': 'indigo',
+         'count': scenario_count},
+        {'title': 'Dx Categories', 'icon': 'https://cdn.lordicon.com/qvyppzqz.json', 'color': 'cyan',
+         'count': dxcategory_count},
+    ]
+
+    activity_chart = [
+        {'label': 'Create', 'pct': create_pct, 'color': 'green', 'emoji': '🟢'},
+        {'label': 'Edit', 'pct': edit_pct, 'color': 'blue', 'emoji': '🔵'},
+        {'label': 'Delete', 'pct': delete_pct, 'color': 'red', 'emoji': '🔴'},
+    ]
+
     return render(request, 'dashboard.html', {
-        'table_list': model_names,
-        'clients': Client.objects.all(),
-        'insurance_data': InsuranceEdit.objects.all(),
-        'modifier_data': ModifierRule.objects.all(),
-        'insurance_count': insurance_count,
-        'modifier_count': modifier_count,
-        'client_count': client_count,
-    })
-
-
-def dynamic_table_view(request, model):
-    try:
-        Model = apps.get_model('insurance_update', model.capitalize())
-    except LookupError:
-        raise Http404("Model not found.")
-
-    records = Model.objects.all()
-    fields = [f.name for f in Model._meta.fields]
-
-    return render(request, 'table_list.html', {
-        'model_name': model,
-        'records': records,
-        'fields': fields,
+        'stat_cards': stat_cards,
+        'activity_chart': activity_chart,
+        'user': request.user,
     })
 
 
@@ -95,17 +137,6 @@ def export_csv(request):
         writer.writerow([row.client.name, row.payer_name, row.edit_type, row.instruction, row.version])
 
     return response
-
-
-# @login_required
-# def add_edit_insurance(request):
-#     form = InsuranceEditForm(request.POST or None)
-#     if form.is_valid():
-#         instance = form.save(commit=False)
-#         instance.created_by = request.user
-#         instance.save()
-#         return redirect('dashboard')
-#     return render(request, 'add_edit.html', {'form': form})
 
 
 INSURANCE_HEADER_MAP = {
@@ -231,7 +262,6 @@ def manage_permissions(request):
     app_label = 'insurance_update'
     actions = ['read', 'add', 'edit', 'delete']
 
-    # ✅ Get all models in app and assign lowercase key
     models = [
         {'object': model, 'name': model.__name__, 'key': model.__name__.lower()}
         for model in apps.get_models()
@@ -242,8 +272,6 @@ def manage_permissions(request):
 
     if request.method == 'POST':
         form_keys = set(request.POST.keys())
-        print("💡 Received form keys:", form_keys)
-
         updated = 0
 
         for model in models:
@@ -262,6 +290,7 @@ def manage_permissions(request):
                     user=user,
                     model_name=model['name']
                 )
+
                 perm.can_view = read_key in form_keys
                 perm.can_add = add_key in form_keys
                 perm.can_edit = edit_key in form_keys
@@ -269,30 +298,40 @@ def manage_permissions(request):
                 perm.save()
 
                 updated += 1
-                print(f"{'Created' if created else 'Updated'} permission for {user.email} on {model['name']}")
 
-        messages.success(request, f"✅ {updated} Table permissions updated.")
-        # ✅ Log the permission change activity
+        messages.success(request, f"✅ {updated} permission records updated.")
         ActivityLog.objects.create(
             user=request.user,
             action="Permission Update",
             target_type="Permission",
             target_id=request.user.id,
-            details="User updated access permissions."
+            details="User updated model-level access permissions."
         )
-        return redirect('manage_permissions')
+        return redirect(f'{request.path}?selected_user={request.POST.get("selected_user")}')
 
-    # ✅ Load current saved permission map
     permission_map = {
         f"{p.model_name.lower()}_{p.user.id}": p
         for p in ModelAccessPermission.objects.all()
     }
+
+    js_permission_data = {
+        key: {
+            'can_view': perm.can_view,
+            'can_add': perm.can_add,
+            'can_edit': perm.can_edit,
+            'can_delete': perm.can_delete,
+        } for key, perm in permission_map.items()
+    }
+
+    selected_user = request.GET.get("selected_user", "")
 
     return render(request, 'admin_permissions.html', {
         'models': models,
         'users': users,
         'actions': actions,
         'permission_map': permission_map,
+        'js_permission_data': json.dumps(js_permission_data, cls=DjangoJSONEncoder),
+        'selected_user': selected_user,
     })
 
 
@@ -388,6 +427,7 @@ def model_tables_view(request):
 
     # activity_logs = ActivityLog.objects.select_related('user').order_by('-timestamp')[:100]
     activity_logs = ActivityLog.objects.order_by('-timestamp')[:100]
+    users = User.objects.select_related('client').order_by('role')
 
     return render(request, 'model_tables.html', {
         'insurance_edits': insurance_edits,
@@ -403,19 +443,77 @@ def model_tables_view(request):
         'mod_payer_categories': mod_payer_categories,
         'code_types': code_types,
         'activity_logs': activity_logs,
+
+        'scenario_data': Scenario.objects.all(),
+        'dxcategory_data': DxCategory.objects.all(),
+        'users': users
     })
 
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from .models import InsuranceEdit
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+@csrf_exempt
+def user_create(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        email = request.POST.get("email")
+        role = request.POST.get("role")
+        client_id = request.POST.get("client")
+        active = request.POST.get("active") == "true"
+
+        # 💡 Check for existing user with the same email
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({"success": False, "message": "User with this email already exists."}, status=400)
+
+        client = Client.objects.filter(id=client_id).first() if client_id else None
+
+        user = User.objects.create_user(email=email, name=name, password="default123", role=role, client=client)
+        user.is_active = active
+        user.save()
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
 
 
+@csrf_exempt
+def user_edit(request, pk):
+    user = User.objects.get(pk=pk)
+    if request.method == "GET":
+        return JsonResponse({
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "role": user.role,
+            "client_id": user.client.id if user.client else "",
+            "is_active": user.is_active
+        })
+
+    if request.method == "POST":
+        user.name = request.POST.get("name")
+        user.email = request.POST.get("email")
+        user.role = request.POST.get("role")
+        client_id = request.POST.get("client")
+        user.client = Client.objects.filter(id=client_id).first() if client_id else None
+        user.is_active = request.POST.get("active") == "true"
+        user.save()
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False}, status=400)
+
+@csrf_exempt
+def user_delete(request, pk):
+    if request.method == "POST":
+        user = User.objects.filter(pk=pk).first()
+        if user:
+            user.delete()
+            return JsonResponse({"success": True})
+    return JsonResponse({"success": False}, status=400)
+
+
+
+@login_required
+@check_model_permission("InsuranceEdit", "add")
 @require_http_methods(["POST"])
 def insurance_create(request):
-
     client, _ = Client.objects.get_or_create(name='Default Client')
     payer_name = request.POST.get('payer_name')
     insurance = InsuranceEdit.objects.create(
@@ -440,6 +538,8 @@ def insurance_create(request):
     return JsonResponse({'success': True})
 
 
+@check_model_permission("InsuranceEdit", "edit")
+@login_required
 def insurance_edit(request, pk):
     insurance = get_object_or_404(InsuranceEdit, pk=pk)
     if request.method == 'POST':
@@ -472,6 +572,8 @@ def insurance_edit(request, pk):
     })
 
 
+@check_model_permission(("InsuranceEdit", "delete"),)
+@login_required
 @csrf_exempt
 def insurance_delete(request, pk):
     insurance = get_object_or_404(InsuranceEdit, pk=pk)
@@ -489,15 +591,6 @@ def insurance_delete(request, pk):
     )
 
     return JsonResponse({'status': 'deleted'})
-
-
-# views.py
-
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods, require_POST
-from django.contrib.auth.decorators import login_required
-from .models import ModifierRule
 
 
 @login_required
@@ -595,13 +688,6 @@ def modifier_delete(request, pk):
     return JsonResponse({'success': True})
 
 
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods, require_POST
-from django.contrib.auth.decorators import login_required
-from .models import Client
-
-
 @login_required
 @require_POST
 def client_create(request):
@@ -657,7 +743,6 @@ def client_edit(request, pk):
     return JsonResponse({'success': True})
 
 
-
 @login_required
 @require_POST
 def client_delete(request, pk):
@@ -676,3 +761,208 @@ def client_delete(request, pk):
     )
 
     return JsonResponse({'success': True})
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
+from .models import DxCategory, ActivityLog
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def dxcategory_create(request):
+    try:
+        data = request.POST
+        dx = DxCategory.objects.create(
+            dxcategory_id=data.get('dxcategory_id'),
+            dxcategory_code=data.get('code'),
+            dxcategory_category=data.get('category'),
+            dxcategory_sub_category=data.get('sub_category'),
+            dxcategory_type=data.get('type'),
+            dxcategory_instructions=data.get('instructions'),
+            dxcategory_sow_id=data.get('sow_id')
+        )
+
+        # ✅ Log
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Create",
+            target_type="DxCategory",
+            target_id=dx.id,
+            details=f"Created DxCategory: {dx.dxcategory_code} (External ID: {dx.dxcategory_id})"
+        )
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def dxcategory_edit(request, id):
+    try:
+        dx = DxCategory.objects.get(id=id)
+
+        if request.method == "GET":
+            return JsonResponse({
+                'id': dx.id,
+                'dxcategory_id': dx.dxcategory_id,
+                'code': dx.dxcategory_code,
+                'category': dx.dxcategory_category,
+                'sub_category': dx.dxcategory_sub_category,
+                'type': dx.dxcategory_type,
+                'instructions': dx.dxcategory_instructions,
+                'sow_id': dx.dxcategory_sow_id,
+            })
+
+        elif request.method == "POST":
+            data = request.POST
+            dx.dxcategory_id = data.get('dxcategory_id')
+            dx.dxcategory_code = data.get('code')
+            dx.dxcategory_category = data.get('category')
+            dx.dxcategory_sub_category = data.get('sub_category')
+            dx.dxcategory_type = data.get('type')
+            dx.dxcategory_instructions = data.get('instructions')
+            dx.dxcategory_sow_id = data.get('sow_id')
+            dx.save()
+
+            # ✅ Log
+            ActivityLog.objects.create(
+                user=request.user,
+                action="Edit",
+                target_type="DxCategory",
+                target_id=dx.id,
+                details=f"Updated DxCategory: {dx.dxcategory_code} (External ID: {dx.dxcategory_id})"
+            )
+
+            return JsonResponse({'success': True})
+
+    except DxCategory.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'DxCategory not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def dxcategory_delete(request, id):
+    try:
+        dx = DxCategory.objects.get(id=id)
+        external_id = dx.dxcategory_id
+        code = dx.dxcategory_code
+        dx.delete()
+
+        # ✅ Log
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Delete",
+            target_type="DxCategory",
+            target_id=id,
+            details=f"Deleted DxCategory: {code} (External ID: {external_id})"
+        )
+
+        return JsonResponse({'success': True})
+
+    except DxCategory.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'DxCategory not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+from .models import Scenario, ActivityLog
+
+@csrf_exempt
+def scenario_create(request):
+    if request.method == "POST":
+        try:
+            scenario = Scenario.objects.create(
+                scenario_id=request.POST.get("scenario_id"),
+                scenario_code=request.POST.get("code"),
+                scenario_category=request.POST.get("category"),
+                scenario_sub_category=request.POST.get("sub_category"),
+                scenario_type=request.POST.get("type"),
+                scenario_instructions=request.POST.get("instructions"),
+                scenario_sow_id=request.POST.get("sow_id"),
+            )
+
+            # ✅ Log creation
+            ActivityLog.objects.create(
+                user=request.user,
+                action="Create",
+                target_type="Scenario",
+                target_id=scenario.id,
+                details=f"Created Scenario: {scenario.scenario_code}"
+            )
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    return HttpResponseBadRequest("Invalid method")
+
+@csrf_exempt
+def scenario_edit(request, pk):
+    scenario = get_object_or_404(Scenario, pk=pk)
+    if request.method == "GET":
+        return JsonResponse({
+            "id": scenario.id,
+            "scenario_id": scenario.scenario_id,
+            "code": scenario.scenario_code,
+            "category": scenario.scenario_category,
+            "sub_category": scenario.scenario_sub_category,
+            "type": scenario.scenario_type,
+            "instructions": scenario.scenario_instructions,
+            "sow_id": scenario.scenario_sow_id,
+        })
+
+    elif request.method == "POST":
+        try:
+            scenario.scenario_id = request.POST.get("scenario_id")
+            scenario.scenario_code = request.POST.get("code")
+            scenario.scenario_category = request.POST.get("category")
+            scenario.scenario_sub_category = request.POST.get("sub_category")
+            scenario.scenario_type = request.POST.get("type")
+            scenario.scenario_instructions = request.POST.get("instructions")
+            scenario.scenario_sow_id = request.POST.get("sow_id")
+            scenario.save()
+
+            # ✅ Log update
+            ActivityLog.objects.create(
+                user=request.user,
+                action="Edit",
+                target_type="Scenario",
+                target_id=scenario.id,
+                details=f"Updated Scenario: {scenario.scenario_code}"
+            )
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return HttpResponseBadRequest("Invalid method")
+
+@csrf_exempt
+def scenario_delete(request, pk):
+    if request.method == "POST":
+        scenario = get_object_or_404(Scenario, pk=pk)
+        code = scenario.scenario_code
+        scenario.delete()
+
+        # ✅ Log delete
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Delete",
+            target_type="Scenario",
+            target_id=pk,
+            details=f"Deleted Scenario: {code}"
+        )
+
+        return JsonResponse({"success": True})
+
+    return HttpResponseBadRequest("Invalid method")

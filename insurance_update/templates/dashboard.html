@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,90 +6,106 @@
   <title>Dashboard | Scintillate RCM</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.lordicon.com/lordicon.js"></script>
   <style>
+    body {
+      background: linear-gradient(120deg, #dbeafe, #ffffff);
+    }
     .glass {
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    @keyframes fadeSlide {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .fade-slide {
+      animation: fadeSlide 0.6s ease-out forwards;
     }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans">
+<body class="text-gray-800 font-sans min-h-screen">
 
-<div class="flex h-screen overflow-hidden">
+<div class="flex flex-col md:flex-row h-screen">
 
   <!-- Sidebar -->
-  <aside class="w-64 fixed top-0 left-0 h-full bg-white p-6 shadow-lg z-40">
-    <h2 class="text-2xl font-bold text-blue-700 mb-8">Scintillate RCM</h2>
-    <nav class="space-y-6">
-      <a href="{% url 'dashboard' %}" class="text-blue-600 font-semibold flex items-center"><span class="ml-2">Dashboard</span></a>
-      <a href="{% url 'excel_import' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Upload Excel</span></a>
-      <a href="{% url 'manage_permissions' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Admin Panel</span></a>
-      <a href="{% url 'model_tables' %}" class="text-gray-700 hover:text-blue-600 flex items-center"><span class="ml-2">Tables</span></a>
+  <aside class="w-full md:w-64 bg-white/90 p-6 shadow-lg md:fixed md:h-screen z-50 glass">
+    <h2 class="text-2xl font-bold text-blue-700 mb-8 flex items-center gap-2">
+      <lord-icon src="https://cdn.lordicon.com/gqzfzudq.json" trigger="loop" style="width:30px;height:30px;"></lord-icon>
+      Scintillate RCM
+    </h2>
+    <nav class="space-y-4 text-lg">
+      <a href="{% url 'dashboard' %}" class="text-blue-600 font-semibold block hover:underline">📊 Dashboard</a>
+      <a href="{% url 'excel_import' %}" class="text-gray-700 hover:text-blue-600 block">📁 Upload Excel</a>
+      <a href="{% url 'manage_permissions' %}" class="text-gray-700 hover:text-blue-600 block">🔐 Admin Panel</a>
+      <a href="{% url 'model_tables' %}" class="text-gray-700 hover:text-blue-600 block">📋 Tables</a>
     </nav>
   </aside>
 
   <!-- Main Content -->
-  <div class="flex-1 ml-64 flex flex-col min-h-screen">
+  <div class="flex-1 md:ml-64 overflow-y-auto h-screen">
 
-    <!-- Topbar -->
-    <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-30">
-      <h1 class="text-xl font-bold text-blue-700">Dashboard</h1>
-      <div class="flex items-center gap-4">
-        <span class="text-sm text-gray-600 hidden md:block">👤 {{ request.user.name }}</span>
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-md text-sm">
-            Logout
-          </button>
-        </form>
-      </div>
-    </header>
+    <div class="p-6 space-y-8">
 
-    <!-- Dashboard Widgets -->
-    <main class="p-6 space-y-6">
-
-      <!-- Greeting & Shortcut -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h2 class="text-2xl font-semibold text-blue-700">Welcome, {{ request.user.name }} 👋</h2>
-        <p class="text-sm text-gray-600 mt-2">Manage insurance edits, modifiers, clients, and more.</p>
-      </div>
-
-      <!-- Quick Stats -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div class="glass p-6 rounded-xl">
-          <h3 class="text-lg font-semibold text-gray-700">Insurance Edits</h3>
-          <p class="text-3xl font-bold text-blue-700 mt-2">{{ insurance_count }}</p>
+      <!-- Topbar -->
+      <header class="bg-white/80 glass p-4 rounded-xl shadow flex justify-between items-center sticky top-0 z-20 backdrop-blur-md">
+        <h1 class="text-xl font-bold text-blue-800">Dashboard</h1>
+        <div class="flex gap-4 items-center">
+          <span class="text-sm text-gray-600">👤 {{ request.user.name }}</span>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+            <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded text-sm">Logout</button>
+          </form>
         </div>
-        <div class="glass p-6 rounded-xl">
-          <h3 class="text-lg font-semibold text-gray-700">Modifier Rules</h3>
-          <p class="text-3xl font-bold text-purple-700 mt-2">{{ modifier_count }}</p>
+      </header>
+
+      <!-- Greeting -->
+      <section class="bg-gradient-to-r from-white via-blue-50 to-white rounded-xl shadow p-6 fade-slide">
+        <h2 class="text-3xl font-extrabold text-blue-700 flex items-center gap-2">
+          <lord-icon src="https://cdn.lordicon.com/lupuorrc.json" trigger="loop" delay="200" style="width:40px;height:40px;"></lord-icon>
+          Welcome, {{ request.user.name }}
+        </h2>
+        <p class="text-gray-600 mt-1 text-sm">Glad to see you back! Here's what's happening in your workspace.</p>
+      </section>
+
+      <!-- Stat Cards -->
+      <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {% for card in stat_cards %}
+        <div class="bg-white glass p-5 rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-center">
+          <lord-icon src="{{ card.icon }}" trigger="hover" style="width:40px;height:40px"></lord-icon>
+          <h3 class="text-sm font-semibold text-gray-600 mt-2">{{ card.title }}</h3>
+          <p class="text-3xl font-bold text-{{ card.color }}-700 mt-1 animate-pulse">{{ card.count }}</p>
         </div>
-        <div class="glass p-6 rounded-xl">
-          <h3 class="text-lg font-semibold text-gray-700">Clients</h3>
-          <p class="text-3xl font-bold text-green-700 mt-2">{{ client_count }}</p>
+        {% endfor %}
+      </section>
+
+      <!-- Activity Chart -->
+      <section class="bg-white glass p-6 rounded-xl shadow-xl">
+        <h3 class="text-lg font-semibold text-gray-700 mb-6">📈 Activity Breakdown</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+          {% for a in activity_chart %}
+          <div class="transition-all hover:scale-105">
+            <svg class="w-24 h-24 mx-auto transform -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9155" fill="none" class="text-gray-200" stroke="currentColor" stroke-width="3.5"></circle>
+              <circle cx="18" cy="18" r="15.9155" fill="none" class="text-{{ a.color }}-500" stroke="currentColor"
+                      stroke-width="3.5" stroke-dasharray="{{ a.pct }}, 100" stroke-linecap="round"></circle>
+            </svg>
+            <div class="mt-2 text-sm">
+              <lord-icon
+                src="{% if a.label == 'Create' %}https://cdn.lordicon.com/gwlusjdu.json{% elif a.label == 'Edit' %}https://cdn.lordicon.com/hbvyhtse.json{% else %}https://cdn.lordicon.com/drxwpfop.json{% endif %}"
+                trigger="loop"
+                delay="200"
+                style="width:30px;height:30px">
+              </lord-icon>
+              <p class="font-semibold text-gray-700 mt-1">{{ a.label }}</p>
+              <span class="text-lg font-bold text-{{ a.color }}-600">{{ a.pct }}%</span>
+            </div>
+          </div>
+          {% endfor %}
         </div>
-      </div>
+      </section>
 
-      <!-- Quick Actions -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h3 class="text-lg font-bold text-gray-700 mb-3">⚡ Quick Actions</h3>
-        <div class="space-x-4">
-          <a href="{% url 'excel_import' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition">📁 Upload Excel</a>
-          <a href="{% url 'model_tables' %}" class="bg-gray-100 text-blue-700 border border-blue-600 px-4 py-2 rounded-md text-sm hover:bg-blue-50 transition">📋 View Tables</a>
-        </div>
-      </div>
-    </main>
-
-
-    <!-- Page content -->
-<!--    <main class="flex-grow flex items-center justify-center p-6 overflow-auto">-->
-<!--  <div class="max-w-2xl w-full space-y-6">-->
-<!--    {% block content %}{% endblock %}-->
-<!--  </div>-->
-<!--</main>-->
-
+    </div>
   </div>
 </div>
 
