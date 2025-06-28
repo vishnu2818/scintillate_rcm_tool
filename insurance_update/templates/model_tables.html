@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,65 +144,71 @@
       Add Insurance
     </button>
   </h2>
-
-  <table class="min-w-full table-fixed text-sm border border-gray-300">
-    <thead class="bg-gray-200 text-left">
+<div class="overflow-y-auto max-h-[600px] border border-gray-300 rounded-md">
+  <table class="min-w-full table-fixed text-sm">
+    <thead class="bg-gray-200 text-left sticky top-0 z-10">
       <tr>
-        <th class="p-2 border-r">Payer Name</th>
-        <th class="p-2 border-r">Payer Category</th>
-        <th class="p-2 border-r">Edits Category</th>
-        <th class="p-2 border-r">Edits Sub-Category</th>
-        <th class="p-2 whitespace-wrap">Instruction</th>
-        <th class="p-2">Actions</th>
+        <th class="p-2 border-r bg-gray-200">Payer Name</th>
+        <th class="p-2 border-r bg-gray-200">Payer Category</th>
+        <th class="p-2 border-r bg-gray-200">Edits Category</th>
+        <th class="p-2 border-r bg-gray-200">Edits Sub-Category</th>
+        <th class="p-2 whitespace-wrap bg-gray-200">Instruction</th>
+        <th class="p-2 bg-gray-200">Actions</th>
       </tr>
     </thead>
     <tbody>
-  {% with prev_key=None %}
-    {% for edit in insurance_edits|slice:":50" %}
-      {% with key=edit.payer_name|stringformat:"s"|add:"__"|add:edit.payer_category %}
-        {% if key != prev_key %}
-          <!-- Group header row for payer_name + payer_category -->
-          <tr class="bg-blue-50 border-t text-sm">
-            <td class="p-1 w-[200px] font-semibold truncate">
-              {{ edit.payer_name }} — {{ edit.payer_category }}
-            </td>
-            <td class="p-1 w-[200px]">
-              <button
-                id="btn-{{ key|slugify }}"
-                type="button"
-                onclick="togglePayer('{{ key|slugify }}')"
-                class="text-blue-600 text-xs px-2 py-0.5 border border-blue-300 rounded hover:bg-blue-100">
-                See More
-              </button>
-            </td>
-            <td colspan="4" class="p-1"></td>
-          </tr>
-          {% with prev_key=key %}{% endwith %}
-        {% endif %}
-
-        <!-- Detail rows, hidden by default -->
-        <tr class="border-t hidden" data-payer="{{ key|slugify }}">
-          <td class="p-2 border-r">{{ edit.payer_name }}</td>
-          <td class="p-2 border-r">{{ edit.payer_category }}</td>
-          <td class="p-2 border-r">{{ edit.edit_type }}</td>
-          <td class="p-2 border-r">{{ edit.edit_sub_category }}</td>
-          <td class="p-2 whitespace-pre-wrap break-words">{{ edit.instruction }}</td>
-          <td class="p-2 border-l flex gap-2">
-            <button onclick="openEditModal({{ edit.id }})" class="text-blue-600 hover:underline text-sm">Edit</button>
-            <button
-              onclick="openDeleteModal('{% url 'insurance_delete' edit.id %}', 'Delete “{{ edit.payer_name }}”?')"
-              class="text-red-600 hover:underline text-sm">
-              Delete
-            </button>
-          </td>
+      {% if insurance_edits %}
+        {% regroup insurance_edits by payer_name as payer_groups %}
+        {% for group in payer_groups %}
+          {% regroup group.list by payer_category as sub_groups %}
+            {% for subgroup in sub_groups %}
+              {% with key=group.grouper|stringformat:"s"|add:"__"|add:subgroup.grouper %}
+                <!-- Group header -->
+                <tr class="bg-blue-50 border-t text-sm">
+                  <td class="p-1 w-[200px] font-semibold truncate">
+                    {{ group.grouper }} — {{ subgroup.grouper }}
+                  </td>
+                  <td class="p-1 w-[200px]">
+                    <button
+                      id="btn-{{ key|slugify }}"
+                      type="button"
+                      onclick="togglePayer('{{ key|slugify }}')"
+                      class="text-blue-600 text-xs px-2 py-0.5 border border-blue-300 rounded hover:bg-blue-100">
+                      See More
+                    </button>
+                  </td>
+                  <td colspan="4" class="p-1"></td>
+                </tr>
+                {% for edit in subgroup.list %}
+                <!-- Hidden Detail Rows -->
+                <tr class="border-t hidden" data-payer="{{ key|slugify }}">
+                  <td class="p-2 border-r">{{ edit.payer_name }}</td>
+                  <td class="p-2 border-r">{{ edit.payer_category }}</td>
+                  <td class="p-2 border-r">{{ edit.edit_type }}</td>
+                  <td class="p-2 border-r">{{ edit.edit_sub_category }}</td>
+                  <td class="p-2 w-[400px] whitespace-pre-wrap break-words">{{ edit.instruction }}</td>
+                  <td class="p-2 border-l flex gap-2">
+                    <button onclick="openEditModal({{ edit.id }})" class="text-blue-600 hover:underline text-sm">Edit</button>
+                    <button
+                      onclick="openDeleteModal('{% url 'insurance_delete' edit.id %}', 'Delete “{{ edit.payer_name }}”?')"
+                      class="text-red-600 hover:underline text-sm">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endwith %}
+            {% endfor %}
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-gray-500 py-6">No records found.</td>
         </tr>
-      {% endwith %}
-    {% endfor %}
-  {% endwith %}
-</tbody>
-
-
+      {% endif %}
+    </tbody>
   </table>
+</div>
+
 </div>
 
 
@@ -420,66 +427,74 @@ document.getElementById('insuranceForm').addEventListener('submit', function(e) 
       </button>
     </h2>
 
-    <table class="min-w-full table-fixed text-sm border border-gray-300">
-      <thead class="bg-gray-200 text-left">
+    <div class="overflow-y-auto max-h-[600px] border border-gray-300 rounded-md">
+  <table class="min-w-full table-fixed text-sm">
+    <thead class="bg-gray-200 text-left sticky top-0 z-10">
+      <tr>
+        <th class="p-2 border-r bg-gray-200">Payer Name</th>
+        <th class="p-2 border-r bg-gray-200">Payer Category</th>
+        <th class="p-2 w-56 border-r bg-gray-200">CPT Code Type</th>
+        <th class="p-2 w-64 border-r bg-gray-200">CPT Code Section</th>
+        <th class="p-2 border-r bg-gray-200">CPT Sub-Category</th>
+        <th class="p-2 border-r bg-gray-200">Instructions</th>
+        <th class="p-2 bg-gray-200">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if modifier_rules %}
+        {% regroup modifier_rules by payer_name as payer_groups %}
+        {% for payer_group in payer_groups %}
+          {% regroup payer_group.list by payer_category as category_groups %}
+          {% for category_group in category_groups %}
+            {% with key=payer_group.grouper|stringformat:"s"|add:"__"|add:category_group.grouper %}
+              <!-- Group Header Row -->
+              <tr class="bg-blue-50 border-t text-sm">
+                <td class="p-1 w-[200px] font-semibold truncate">
+                  {{ payer_group.grouper }} — {{ category_group.grouper }}
+                </td>
+                <td class="p-1 w-[200px]">
+                  <button
+                    id="mod-btn-{{ key|slugify }}"
+                    type="button"
+                    onclick="togglePayer('{{ key|slugify }}')"
+                    class="text-blue-600 text-xs px-2 py-0.5 border border-blue-300 rounded hover:bg-blue-100">
+                    See More
+                  </button>
+                </td>
+                <td colspan="5" class="p-1"></td>
+              </tr>
+
+              {% for rule in category_group.list %}
+                <!-- Hidden Detail Row -->
+                <tr class="border-t hidden" data-payer="{{ key|slugify }}">
+                  <td class="p-2 border-r">{{ rule.payer_name }}</td>
+                  <td class="p-2 border-r">{{ rule.payer_category }}</td>
+                  <td class="p-2 border-r">{{ rule.code_type }}</td>
+                  <td class="p-2 border-r whitespace-pre-wrap break-words">{{ rule.code_list }}</td>
+                  <td class="p-2 border-r">{{ rule.sub_category }}</td>
+                  <td class="p-2 border-r">{{ rule.modifier_instruction }}</td>
+                  <td class="p-2 flex gap-2">
+                    <button onclick="openModifierEditModal({{ rule.id }})" class="text-blue-600 hover:underline text-sm">Edit</button>
+                    <button
+                      onclick="openDeleteModal('{% url 'modifier_delete' rule.id %}', 'Delete “{{ rule.payer_name }} – {{ rule.code_list }}”?')"
+                      class="text-red-600 hover:underline text-sm">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endwith %}
+          {% endfor %}
+        {% endfor %}
+      {% else %}
         <tr>
-          <th class="p-2 border-r">Payer Name</th>
-          <th class="p-2 border-r">Payer Category</th>
-          <th class="p-2 w-56 border-r">CPT Code Type</th>
-          <th class="p-2 w-64 border-r">CPT Code Section</th>
-          <th class="p-2 border-r">CPT Sub-Category</th>
-          <th class="p-2 border-r">Instructions</th>
-          <th class="p-2">Actions</th>
+          <td colspan="7" class="text-center text-gray-500 py-6">No records found.</td>
         </tr>
-      </thead>
-      <tbody>
-  {% with prev_key=None %}
-    {% for rule in modifier_rules|slice:":50" %}
-      {% with key=rule.payer_name|stringformat:"s"|add:"__"|add:rule.payer_category %}
-        {% if key != prev_key %}
-          <!-- Group Header Row -->
-          <tr class="bg-blue-50 border-t text-sm">
-  <td class="p-1 w-[200px] font-semibold truncate">
-    {{ rule.payer_name }} — {{ rule.payer_category }}
-  </td>
-  <td class="p-1 w-[200px]">
-    <button
-      id="mod-btn-{{ key|slugify }}"
-      type="button"
-      onclick="togglePayer('{{ key|slugify }}')"
-      class="text-blue-600 text-xs px-2 py-0.5 border border-blue-300 rounded hover:bg-blue-100">
-      See More
-    </button>
-  </td>
-  <td colspan="5" class="p-1"></td>
-</tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
 
-          {% with prev_key=key %}{% endwith %}
-        {% endif %}
-
-        <!-- Hidden Detail Row -->
-        <tr class="border-t hidden" data-payer="{{ key|slugify }}">
-          <td class="p-2 border-r">{{ rule.payer_name }}</td>
-          <td class="p-2 border-r">{{ rule.payer_category }}</td>
-          <td class="p-2 border-r">{{ rule.code_type }}</td>
-          <td class="p-2 border-r whitespace-pre-wrap break-words">{{ rule.code_list }}</td>
-          <td class="p-2 border-r">{{ rule.sub_category }}</td>
-          <td class="p-2 border-r">{{ rule.modifier_instruction }}</td>
-          <td class="p-2 flex gap-2">
-            <button onclick="openModifierEditModal({{ rule.id }})" class="text-blue-600 hover:underline text-sm">Edit</button>
-            <button
-              onclick="openDeleteModal('{% url 'modifier_delete' rule.id %}', 'Delete “{{ rule.payer_name }} – {{ rule.code_list }}”?')"
-              class="text-red-600 hover:underline text-sm">
-              Delete
-            </button>
-          </td>
-        </tr>
-      {% endwith %}
-    {% endfor %}
-  {% endwith %}
-</tbody>
-
-    </table>
   </div>
 </div>
 

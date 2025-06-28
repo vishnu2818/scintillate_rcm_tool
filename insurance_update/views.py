@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-
+from collections import defaultdict
 from .check_permission import check_model_permission
 from .forms import *
 from django.contrib.auth import authenticate, login
@@ -202,8 +202,8 @@ def unified_excel_import_view(request):
                 target_id=request.user.id,
                 details="User imported Excel data successfully"
             )
-
-            return redirect('dashboard')
+            return render(request, 'import_success.html')
+            # return redirect('dashboard')
 
         else:
             form = ExcelDualUploadForm(request.POST, request.FILES)
@@ -428,6 +428,16 @@ def model_tables_view(request):
     # activity_logs = ActivityLog.objects.select_related('user').order_by('-timestamp')[:100]
     activity_logs = ActivityLog.objects.order_by('-timestamp')[:100]
     users = User.objects.select_related('client').order_by('role')
+
+    grouped_insurance_edits = defaultdict(list)
+    for edit in insurance_edits:
+        key = f"{edit.payer_name}__{edit.payer_category}"
+        grouped_insurance_edits[key].append(edit)
+
+    grouped_insurance = defaultdict(list)
+    for edit in insurance_edits:
+        key = f"{edit.payer_name}__{edit.payer_category}"
+        grouped_insurance[key].append(edit)
 
     return render(request, 'model_tables.html', {
         'insurance_edits': insurance_edits,

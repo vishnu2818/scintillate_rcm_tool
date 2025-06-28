@@ -11,3 +11,8 @@ def get_item(dictionary, key):
 def get_attr(obj, attr_name):
     """Safely gets an attribute from an object."""
     return getattr(obj, attr_name, False)
+
+@register.filter
+def contains(value, arg):
+    """Check if `arg` is in `value` (used for checking strings in templates)"""
+    return arg in value
