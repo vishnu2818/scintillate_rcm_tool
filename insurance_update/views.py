@@ -39,6 +39,17 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods, require_POST
 from django.contrib.auth.decorators import login_required
 from .models import ModifierRule
+from rcm_app.models import ExcelUpload  # Import from the other app
+
+def home(request):
+    uploads = ExcelUpload.objects.filter(user=request.user).order_by('-uploaded_at')
+    insurance_edits = InsuranceEdit.objects.all().order_by('-id')[:10]  # Example: latest 10 records
+
+    context = {
+        'uploads': uploads,
+        'insurance_edits': insurance_edits,
+    }
+    return render(request, 'home.html', context)
 
 
 def login_page(request):

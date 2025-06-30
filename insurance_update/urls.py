@@ -43,11 +43,11 @@
 # ]
 
 
-
 from django.urls import path
 from .views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth.views import LogoutView
+import rcm_app.views as rcm_views
 
 urlpatterns = [
     path('', login_page, name='login_page'),
@@ -73,7 +73,7 @@ urlpatterns = [
     path('modifier/delete/<int:pk>/', modifier_delete, name='modifier_delete'),
 
     path('client/create/', client_create, name='client_create'),
-    path('client/edit/<int:pk>/', client_edit,   name='client_edit'),
+    path('client/edit/<int:pk>/', client_edit, name='client_edit'),
     path('client/delete/<int:pk>/', client_delete, name='client_delete'),
 
     path('dxcategory/create/', dxcategory_create, name='dxcategory_create'),
@@ -87,4 +87,7 @@ urlpatterns = [
     path('user/create/', user_create, name='user_create'),
     path('user/edit/<int:pk>/', user_edit, name='user_edit'),
     path('user/delete/<int:pk>/', user_delete, name='user_delete'),
+
+#     RCM APP URL
+    path('insurance/', rcm_views.home, name='insurance_home'),
 ]

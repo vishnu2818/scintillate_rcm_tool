@@ -36,10 +36,11 @@
       Scintillate RCM
     </h2>
     <nav class="space-y-4 text-lg">
-      <a href="{% url 'dashboard' %}" class="text-blue-600 font-semibold block hover:underline">📊 Dashboard</a>
-      <a href="{% url 'excel_import' %}" class="text-gray-700 hover:text-blue-600 block">📁 Upload Excel</a>
-      <a href="{% url 'manage_permissions' %}" class="text-gray-700 hover:text-blue-600 block">🔐 Admin Panel</a>
-      <a href="{% url 'model_tables' %}" class="text-gray-700 hover:text-blue-600 block">📋 Tables</a>
+      <a href="{% url 'dashboard' %}" class="text-blue-600 font-semibold block hover:underline">Dashboard</a>
+      <a href="{% url 'excel_import' %}" class="text-gray-700 hover:text-blue-600 block">Upload Excel</a>
+      <a href="{% url 'manage_permissions' %}" class="text-gray-700 hover:text-blue-600 block">Admin Panel</a>
+      <a href="{% url 'model_tables' %}" class="text-gray-700 hover:text-blue-600 block">Tables</a>
+      <a href="{% url 'insurance_home' %}" class="text-gray-700 hover:text-blue-600 block">Insurance Home</a>
     </nav>
   </aside>
 
@@ -81,7 +82,7 @@
 
       <!-- Activity Chart -->
       <section class="bg-white glass p-6 rounded-xl shadow-xl">
-        <h3 class="text-lg font-semibold text-gray-700 mb-6">📈 Activity Breakdown</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-6">Activity Breakdown</h3>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {% for a in activity_chart %}
           <div class="transition-all hover:scale-105">
