@@ -16,3 +16,15 @@ def get_attr(obj, attr_name):
 def contains(value, arg):
     """Check if `arg` is in `value` (used for checking strings in templates)"""
     return arg in value
+
+@register.filter
+def index(sequence, position):
+    try:
+        return sequence[position]
+    except Exception:
+        return ''
+
+
+@register.filter
+def zip_lists(a, b):
+    return zip(a, b)

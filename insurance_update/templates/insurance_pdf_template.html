@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #333; padding: 6px; text-align: left; }
+        th { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h2>Insurance Edits</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Payer Name</th>
+                <th>Payer Category</th>
+                <th>Edit Type</th>
+                <th>Sub Category</th>
+                <th>Instruction</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in edits %}
+            <tr>
+                <td>{{ record.payer_name }}</td>
+                <td>{{ record.payer_category }}</td>
+                <td>{{ record.edit_type }}</td>
+                <td>{{ record.edit_sub_category }}</td>
+                <td>{{ record.instruction }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

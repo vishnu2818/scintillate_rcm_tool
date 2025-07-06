@@ -1,0 +1,260 @@
+<!-- Modifier Tab -->
+<div id="modifier-tab" class="tab-content hidden">
+  <form method="get" class="mb-4">
+    <div class="flex flex-wrap items-center gap-4 text-sm">
+      <!-- Payer Name -->
+      <select name="payer_name" class="p-2 border rounded min-w-[12rem]">
+        <option value="">Payer Name</option>
+        {% for name in mod_payer_names %}
+          <option value="{{ name }}" {% if filters.payer_name == name %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Payer Category -->
+      <select name="payer_category" class="p-2 border rounded min-w-[12rem]">
+        <option value="">Payer Category</option>
+        {% for cat in mod_payer_categories %}
+          <option value="{{ cat }}" {% if filters.payer_category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Code Type -->
+      <select name="code_type" class="p-2 border rounded min-w-[12rem]">
+        <option value="">Code Type</option>
+        {% for ct in code_types %}
+          <option value="{{ ct }}" {% if filters.code_type == ct %}selected{% endif %}>{{ ct }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Code List Search -->
+      <input type="text" name="code_list" placeholder="Search Code e.g. L0464 or E0870"
+        value="{{ filters.code_list }}" class="p-2 border rounded min-w-[15rem]" />
+
+      <!-- Sub Category Search -->
+      <input type="text" name="sub_category" placeholder="Search Sub Category"
+        value="{{ filters.sub_category }}" class="p-2 border rounded min-w-[14rem]" />
+
+      <!-- Hidden tab memory -->
+      <input type="hidden" name="active_tab" id="active_tab_input" value="modifier-tab">
+
+      <!-- Buttons -->
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>
+      <a href="{% url 'model_tables' %}#modifier-tab" class="px-4 py-2 bg-gray-400 text-white rounded">Clear</a>
+    </div>
+  </form>
+
+  <!-- Table and Buttons -->
+  <div class="overflow-x-auto bg-white p-4 rounded shadow">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-lg font-semibold">Modifier Records</h2>
+      <div class="flex gap-2 items-center">
+        <!-- Upload Excel Form -->
+        <form method="post" action="{% url 'modifier_preview_upload' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">
+            Upload Excel
+            <input type="file" name="excel_file" accept=".xlsx,.xls" onchange="this.form.submit()" hidden>
+          </label>
+        </form>
+
+        <!-- Add Modifier Button -->
+        <button onclick="openModifierModal()" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm">
+          Add Modifier
+        </button>
+
+        <!-- Download Excel Button -->
+        <a href="{% url 'download_modifier_excel' %}" class="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm">
+          Download Excel
+        </a>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-y-auto max-h-[600px] border border-gray-300">
+      <table class="min-w-full table-fixed text-sm">
+        <thead class="bg-gray-200 text-left sticky top-0 z-10">
+          <tr>
+<!--            <th class="p-2 border-r">Client</th>-->
+            <th class="p-2 border-r">Payer Name</th>
+            <th class="p-2 border-r">Payer Category</th>
+            <th class="p-2 border-r">CPT Code Type</th>
+            <th class="p-2 border-r">CPT Code Section</th>
+            <th class="p-2 border-r">Sub-Category</th>
+            <th class="p-2 border-r">Instructions</th>
+            <th class="p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if modifier_rules %}
+            {% regroup modifier_rules by payer_name as payer_groups %}
+            {% for payer_group in payer_groups %}
+              {% regroup payer_group.list by payer_category as category_groups %}
+              {% for category_group in category_groups %}
+                {% with key=payer_group.grouper|stringformat:"s"|add:"__"|add:category_group.grouper %}
+                  <!-- Group Header -->
+                  <tr class="border-t">
+                    <td class="p-1 font-semibold truncate">
+                      {{ payer_group.grouper }} — {{ category_group.grouper }}
+                    </td>
+                    <td class="p-1">
+                      <button
+                        id="mod-btn-{{ key|slugify }}"
+                        onclick="togglePayer('{{ key|slugify }}')"
+                        class="text-blue-600 text-xs border px-2 py-0.5 rounded hover:bg-blue-100">
+                        See More
+                      </button>
+                    </td>
+                    <td colspan="5"></td>
+                  </tr>
+
+                  {% for rule in category_group.list %}
+                    <tr class="border-t hidden" data-payer="{{ key|slugify }}">
+<!--                      <td class="p-2 border-r">{{ rule.client }}</td>-->
+                      <td class="p-2 border-r">{{ rule.payer_name }}</td>
+                      <td class="p-2 border-r">{{ rule.payer_category }}</td>
+                      <td class="p-2 border-r">{{ rule.code_type }}</td>
+                      <td class="p-2 border-r">{{ rule.code_list }}</td>
+                      <td class="p-2 border-r">{{ rule.sub_category }}</td>
+                      <td class="p-2 border-r">{{ rule.modifier_instruction }}</td>
+                      <td class="p-2 flex gap-2">
+                        <button onclick="openModifierEditModal({{ rule.id }})" class="text-blue-600 hover:underline text-sm">Edit</button>
+                        <button
+                          onclick="openDeleteModal('{% url 'modifier_delete' rule.id %}', 'Delete “{{ rule.payer_name }} – {{ rule.code_list }}”?')"
+                          class="text-red-600 hover:underline text-sm">Delete</button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% endwith %}
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-gray-500 py-6">No records found.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Add/Edit Modifier -->
+<div id="modifierModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-xl p-6">
+    <h3 id="modModalTitle" class="text-xl font-semibold mb-4">Add Modifier</h3>
+    <form id="modifierForm">
+  {% csrf_token %}
+  <input type="hidden" id="modifierId" name="id">
+
+  <div class="grid grid-cols-2 gap-4">
+    <div class="col-span-2">
+      <label class="block text-sm font-medium">Select Client</label>
+      <select id="modClient" name="client" class="mt-1 p-2 border rounded w-full" required>
+        <option value="" disabled selected>-- Select Client --</option>
+        {% for client in clients %}
+          <option value="{{ client.id }}">{{ client.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Payer Name</label>
+      <input type="text" id="modPayerName" name="payer_name" class="mt-1 p-2 border rounded w-full">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Payer Category</label>
+      <input type="text" id="modPayerCategory" name="payer_category" class="mt-1 p-2 border rounded w-full">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">CPT Code Type</label>
+      <input type="text" id="modCodeType" name="code_type" class="mt-1 p-2 border rounded w-full">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">CPT Code Section</label>
+      <input type="text" id="modCodeList" name="code_list" class="mt-1 p-2 border rounded w-full">
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Sub-Category</label>
+      <input type="text" id="modSubCategory" name="sub_category" class="mt-1 p-2 border rounded w-full">
+    </div>
+    <div class="col-span-2">
+      <label class="block text-sm font-medium">Modifier Instruction</label>
+      <textarea id="modInstruction" name="modifier_instruction" class="mt-1 p-2 border rounded w-full"></textarea>
+    </div>
+  </div>
+
+  <div class="mt-6 flex justify-end gap-2">
+    <button type="button" onclick="closeModifierModal()" class="px-4 py-2 bg-gray-400 text-white rounded">Cancel</button>
+    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Save</button>
+  </div>
+</form>
+
+  </div>
+</div>
+
+<!-- JS -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Toggle See More
+  window.togglePayer = function(slug) {
+    const rows = document.querySelectorAll(`[data-payer="${slug}"]`);
+    const btn = document.getElementById(`mod-btn-${slug}`);
+    const hidden = rows[0].classList.contains('hidden');
+    rows.forEach(r => r.classList.toggle('hidden'));
+    btn.textContent = hidden ? 'Hide' : 'See More';
+  }
+
+  // Open Modal
+  window.openModifierModal = function() {
+    document.getElementById('modifierForm').reset();
+    document.getElementById('modClient').value = ""; // Ensure dropdown resets
+    document.getElementById('modifierId').value = "";
+    document.getElementById('modModalTitle').innerText = "Add Modifier";
+    document.getElementById('modifierModal').classList.remove('hidden');
+  }
+
+  window.closeModifierModal = function() {
+    document.getElementById('modifierModal').classList.add('hidden');
+  }
+
+  // Form Submit
+  document.getElementById('modifierForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const clientValue = document.getElementById('modClient').value;
+
+    if (!clientValue) {
+      alert('Please select a client.');
+      return;
+    }
+
+
+    const id = document.getElementById('modifierId').value;
+    const url = id ? `/modifier/edit/${id}/` : `/modifier/create/`;
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: new URLSearchParams({
+        client: clientValue,
+        payer_name: document.getElementById('modPayerName').value,
+        payer_category: document.getElementById('modPayerCategory').value,
+        code_type: document.getElementById('modCodeType').value,
+        code_list: document.getElementById('modCodeList').value,
+        sub_category: document.getElementById('modSubCategory').value,
+        modifier_instruction: document.getElementById('modInstruction').value
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        closeModifierModal();
+        location.reload();
+      } else {
+        alert(data.error || 'Save failed.');
+      }
+    });
+  });
+});
+</script>

@@ -57,6 +57,7 @@ urlpatterns = [
     path('api/protected/', protected_view, name='protected_view'),
     path('dashboard/', unified_dashboard, name='dashboard'),
     path('export/', export_csv, name='export_csv'),
+
     # path('add-edit/', add_edit_insurance, name='add_edit_insurance'),
     path('import/excel/', unified_excel_import_view, name='excel_import'),
 
@@ -87,4 +88,17 @@ urlpatterns = [
     path('user/create/', user_create, name='user_create'),
     path('user/edit/<int:pk>/', user_edit, name='user_edit'),
     path('user/delete/<int:pk>/', user_delete, name='user_delete'),
+
+    path('insurance/upload/', insurance_preview_upload, name='insurance_preview_upload'),
+    path('insurance/confirm-import/', insurance_confirm_import, name='insurance_confirm_import'),
+    path('insurance/download/excel/', insurance_download_excel, name='insurance_download_excel'),
+    # path('insurance/download/pdf/', insurance_download_pdf, name='insurance_download_pdf'),
+
+    path('client/upload/', client_preview_upload, name='client_preview_upload'),
+    path('client/confirm-import/', client_confirm_import, name='client_confirm_import'),
+
+    path('modifier/upload/', modifier_preview_upload, name='modifier_preview_upload'),
+    path('modifier/confirm-import/', modifier_confirm_import, name='modifier_confirm_import'),
+    path('modifier/download/excel/', download_modifier_excel, name='download_modifier_excel'),
+    # path('modifier/download/pdf/', download_modifier_pdf, name='download_modifier_pdf'),
 ]

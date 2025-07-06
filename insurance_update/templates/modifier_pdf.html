@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 5px;
+    }
+    th {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h2>Modifier Rules</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Payer Name</th>
+        <th>Payer Category</th>
+        <th>Code Type</th>
+        <th>Code List</th>
+        <th>Sub Category</th>
+        <th>Instruction</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rule in modifier_rules %}
+        <tr>
+          <td>{{ rule.payer_name }}</td>
+          <td>{{ rule.payer_category }}</td>
+          <td>{{ rule.code_type }}</td>
+          <td>{{ rule.code_list }}</td>
+          <td>{{ rule.sub_category }}</td>
+          <td>{{ rule.modifier_instruction }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!-- Activity Log Tab -->
+<div id="activity-tab" class="tab-content hidden">
+  <div class="overflow-x-auto bg-white p-4 rounded shadow">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-lg font-semibold">Activity Logs</h2>
+    </div>
+    <table class="min-w-full table-auto text-sm border border-gray-300">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2 text-left">User</th>
+          <th class="p-2 text-left">Action</th>
+          <th class="p-2 text-left">Target Type</th>
+          <th class="p-2 text-left">Target ID</th>
+          <th class="p-2 text-left">Timestamp</th>
+          <th class="p-2 text-left">Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if activity_logs %}
+          {% for log in activity_logs %}
+            <tr class="border-t">
+              <td class="p-2">{{ log.user }}</td>
+              <td class="p-2">{{ log.action|title }}</td>
+              <td class="p-2">{{ log.target_type }}</td>
+              <td class="p-2">{{ log.target_id }}</td>
+              <td class="p-2">{{ log.timestamp }}</td>
+              <td class="p-2">{{ log.details|default:"-" }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-gray-500 p-4">No activity logs found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>

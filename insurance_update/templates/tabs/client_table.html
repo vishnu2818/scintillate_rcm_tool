@@ -1,0 +1,196 @@
+<!-- Clients Tab -->
+<div id="client-tab" class="tab-content hidden">
+  <!-- Filter Form -->
+  <form method="get" class="mb-4">
+    <div class="flex flex-wrap items-center gap-4 text-sm">
+      <input type="text" name="client_name" placeholder="Search Client Name"
+             value="{{ filters.client_name }}" class="p-2 border rounded min-w-[16rem]" />
+      <select name="active" class="p-2 border rounded">
+        <option value="">All Status</option>
+        <option value="true" {% if filters.active == 'true' %}selected{% endif %}>Active</option>
+        <option value="false" {% if filters.active == 'false' %}selected{% endif %}>Inactive</option>
+      </select>
+      <input type="hidden" name="active_tab" value="client-tab" />
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Filter</button>
+      <a href="{% url 'model_tables' %}?active_tab=client-tab" class="px-4 py-2 bg-gray-400 text-white rounded">Clear</a>
+    </div>
+  </form>
+
+  <!-- Client Records Table -->
+  <div class="overflow-x-auto bg-white p-4 rounded shadow">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-3">
+      <span class="text-lg font-semibold">Client Records</span>
+      <div class="flex gap-2 items-center">
+        <!-- Add Client Button -->
+        <button onclick="openClientModal()" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm">
+          Add Client
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-y-auto max-h-[600px] border border-gray-300 rounded-md">
+      <table class="min-w-full table-fixed text-sm">
+        <thead class="bg-gray-200 text-left sticky top-0 z-10">
+          <tr>
+            <th class="p-2 border-r">Client Name</th>
+            <th class="p-2 border-r">Active</th>
+            <th class="p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if clients %}
+            {% for client in clients %}
+              <tr class="border-t">
+                <td class="p-2 border-r">{{ client.name }}</td>
+                <td class="p-2 border-r">
+                  {% if client.active %}
+                    <span class="text-green-600 font-medium">Active</span>
+                  {% else %}
+                    <span class="text-red-600 font-medium">Inactive</span>
+                  {% endif %}
+                </td>
+                <td class="p-2 flex gap-2">
+                  <button onclick="openClientEditModal({{ client.id }})" class="text-blue-600 hover:underline text-sm">Edit</button>
+                  <button
+                    onclick="openDeleteModal('{% url 'client_delete' client.id %}', 'Delete “{{ client.name }}”?')"
+                    class="text-red-600 hover:underline text-sm">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-gray-500 py-6">No clients found.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Client Modal -->
+<div id="clientModal" class="fixed inset-0 flex bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow max-w-md w-full">
+    <h3 id="clientModalTitle" class="text-lg font-semibold mb-4">Add Client</h3>
+    <form id="clientForm">
+      {% csrf_token %}
+      <input type="hidden" id="clientId">
+      <input type="text" id="clientName" name="name" class="w-full border p-2 mb-3" placeholder="Client Name" required />
+      <div class="flex items-center gap-2 mb-4">
+        <input type="checkbox" id="clientActive" class="h-4 w-4" />
+        <label for="clientActive">Active</label>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeClientModal()" class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteClientModal"
+     class="fixed inset-0 flex bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+    <button onclick="closeDeleteModal()" class="absolute top-2 right-2 text-gray-600 hover:text-black">✕</button>
+    <h3 class="text-xl font-semibold mb-4 text-red-600">Confirm Delete</h3>
+    <p id="deleteMessage" class="mb-6">Are you sure?</p>
+    <div class="flex justify-end gap-2">
+      <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded">Cancel</button>
+      <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  let deleteUrl = '';
+
+  // Open Create Modal
+  window.openClientModal = function() {
+    document.getElementById('clientForm').reset();
+    document.getElementById('clientId').value = '';
+    document.getElementById('clientModalTitle').innerText = 'Add Client';
+    document.getElementById('clientModal').classList.remove('hidden');
+  };
+
+  // Open Edit Modal
+  window.openClientEditModal = function(id) {
+    fetch(`/client/edit/${id}/`)
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('clientId').value = data.id;
+        document.getElementById('clientName').value = data.name;
+        document.getElementById('clientActive').checked = data.active;
+        document.getElementById('clientModalTitle').innerText = 'Edit Client';
+        document.getElementById('clientModal').classList.remove('hidden');
+      });
+  };
+
+  // Close Client Modal
+  window.closeClientModal = function() {
+    document.getElementById('clientModal').classList.add('hidden');
+  };
+
+  // Submit Create/Edit Form
+  document.getElementById('clientForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('clientId').value;
+    const url = id ? `/client/edit/${id}/` : `/client/create/`;
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: new URLSearchParams({
+        name: document.getElementById('clientName').value,
+        active: document.getElementById('clientActive').checked ? 'true' : 'false'
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        closeClientModal();
+        location.reload();
+      } else {
+        alert('Save failed. Please check input.');
+      }
+    });
+  });
+
+  // Open Delete Modal
+  window.openDeleteModal = function(url, message) {
+    deleteUrl = url;
+    document.getElementById('deleteMessage').innerText = message;
+    document.getElementById('deleteModal').classList.remove('hidden');
+  };
+
+  // Close Delete Modal
+  window.closeDeleteModal = function() {
+    deleteUrl = '';
+    document.getElementById('deleteModal').classList.add('hidden');
+  };
+
+  // Confirm Delete
+  document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    fetch(deleteUrl, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    }).then(r => {
+      if (r.ok) {
+        closeDeleteModal();
+        location.reload();
+      } else {
+        alert('Delete failed.');
+      }
+    });
+  });
+});
+</script>

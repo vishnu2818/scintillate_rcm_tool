@@ -439,6 +439,11 @@ def model_tables_view(request):
         key = f"{edit.payer_name}__{edit.payer_category}"
         grouped_insurance[key].append(edit)
 
+    grouped = defaultdict(list)
+    for edit in insurance_edits:
+        key = (edit.payer_name, edit.payer_category)  # Tuple of two values
+        grouped[key].append(edit)
+
     return render(request, 'model_tables.html', {
         'insurance_edits': insurance_edits,
         'clients': clients,
@@ -456,7 +461,8 @@ def model_tables_view(request):
 
         'scenario_data': Scenario.objects.all(),
         'dxcategory_data': DxCategory.objects.all(),
-        'users': users
+        'users': users,
+        'grouped_insurance_edits': grouped.items(),
     })
 
 
@@ -524,10 +530,12 @@ def user_delete(request, pk):
 @check_model_permission("InsuranceEdit", "add")
 @require_http_methods(["POST"])
 def insurance_create(request):
-    client, _ = Client.objects.get_or_create(name='Default Client')
+    client_id = request.POST.get('client')
+    # 🛠 Convert client_id to actual Client object
+    client_instance = get_object_or_404(Client, pk=client_id)
     payer_name = request.POST.get('payer_name')
     insurance = InsuranceEdit.objects.create(
-        client=client,
+        client=client_instance,
         payer_name=payer_name,
         payer_category=request.POST.get('payer_category'),
         edit_type=request.POST.get('edit_type'),
@@ -603,35 +611,52 @@ def insurance_delete(request, pk):
     return JsonResponse({'status': 'deleted'})
 
 
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+
 @login_required
 @require_POST
 def modifier_create(request):
     """
     Handle AJAX POST to create a new ModifierRule.
-    Expects payer_name, payer_category, code_type, code_list, sub_category, modifier_instruction.
+    Expects client, payer_name, payer_category, code_type, code_list, sub_category, modifier_instruction.
     """
-    client, _ = Client.objects.get_or_create(name='Default Client')
-    rule = ModifierRule.objects.create(
-        client=client,
-        payer_name=request.POST.get('payer_name', ''),
-        payer_category=request.POST.get('payer_category', ''),
-        code_type=request.POST.get('code_type', ''),
-        code_list=request.POST.get('code_list', ''),
-        sub_category=request.POST.get('sub_category', ''),
-        modifier_instruction=request.POST.get('modifier_instruction', ''),
-        created_by=request.user
-    )
+    try:
+        # ✅ Get and validate client
+        client_id = request.POST.get('client')
+        if not client_id:
+            return JsonResponse({'success': False, 'error': 'Client is required.'}, status=400)
 
-    # ✅ Log creation
-    ActivityLog.objects.create(
-        user=request.user,
-        action="Create",
-        target_type="ModifierRule",
-        target_id=rule.id,
-        details=f"Created modifier for payer: {rule.payer_name}"
-    )
+        # Convert client_id to Client instance
+        client_instance = get_object_or_404(Client, pk=client_id)
 
-    return JsonResponse({'success': True, 'id': rule.id})
+        # ✅ Create ModifierRule
+        rule = ModifierRule.objects.create(
+            client=client_instance,
+            payer_name=request.POST.get('payer_name', '').strip(),
+            payer_category=request.POST.get('payer_category', '').strip(),
+            code_type=request.POST.get('code_type', '').strip(),
+            code_list=request.POST.get('code_list', '').strip(),
+            sub_category=request.POST.get('sub_category', '').strip(),
+            modifier_instruction=request.POST.get('modifier_instruction', '').strip(),
+            created_by=request.user
+        )
+
+        # ✅ Log creation
+        ActivityLog.objects.create(
+            user=request.user,
+            action="Create",
+            target_type="ModifierRule",
+            target_id=rule.id,
+            details=f"Created modifier for payer: {rule.payer_name}"
+        )
+
+        return JsonResponse({'success': True, 'id': rule.id})
+
+    except Exception as e:
+        # 🛡 Return error for debugging in JS
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @login_required
@@ -976,3 +1001,423 @@ def scenario_delete(request, pk):
         return JsonResponse({"success": True})
 
     return HttpResponseBadRequest("Invalid method")
+
+
+def insurance_preview_upload(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+
+        # Save file to custom folder: insurance_update/uploaded_excels/
+        upload_dir = os.path.join(settings.BASE_DIR, 'insurance_update', 'uploaded_excels')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_name = f"{timestamp}_{excel_file.name}"
+        file_path = os.path.join(upload_dir, file_name)
+
+        with open(file_path, 'wb+') as destination:
+            for chunk in excel_file.chunks():
+                destination.write(chunk)
+
+        # Load workbook
+        wb = openpyxl.load_workbook(file_path)
+        sheet = wb.active
+        rows = list(sheet.iter_rows(values_only=True))
+
+        headers = rows[0]
+        sample_data = rows[1:6]
+
+        model_fields = [
+            'payer_name',
+            'payer_category',
+            'edit_type',
+            'edit_sub_category',
+            'instruction',
+            'version',
+            'client'
+        ]
+
+        def normalize(text):
+            return ''.join(e.lower() for e in str(text) if e.isalnum())
+
+        auto_mappings = []
+        for header in headers:
+            norm_header = normalize(header)
+            best_match = difflib.get_close_matches(norm_header, [normalize(f) for f in model_fields], n=1, cutoff=0.6)
+            matched_field = ''
+            if best_match:
+                for f in model_fields:
+                    if normalize(f) == best_match[0]:
+                        matched_field = f
+                        break
+            auto_mappings.append(matched_field)
+
+        return render(request, 'insurance_mapping.html', {
+            'headers': headers,
+            'sample_data': sample_data,
+            'model_fields': model_fields,
+            'auto_mappings': auto_mappings,
+            'file_path': file_path  # absolute path passed to confirm view
+        })
+
+    return HttpResponseBadRequest("No Excel file provided.")
+
+
+def insurance_confirm_import(request):
+    if request.method == "POST":
+        file_path = request.POST.get("file_path")
+        wb = openpyxl.load_workbook(file_path)
+        sheet = wb.active
+        rows = list(sheet.iter_rows(values_only=True))
+
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        mappings = {}
+        for i in range(len(headers)):
+            field = request.POST.get(f"mapping_{i}")
+            if field:
+                mappings[i] = field
+
+        inserted = 0
+        skipped = 0
+
+        for row in data_rows:
+            record = {}
+            for idx, value in enumerate(row):
+                field = mappings.get(idx)
+                if field:
+                    record[field] = value
+
+            # ✅ Auto-create Client if not found
+            if 'client' in record:
+                client_name = record['client']
+                client, created = Client.objects.get_or_create(name=client_name)
+                if created:
+                    print(f"✅ Created new Client: {client_name}")
+                record['client'] = client
+
+            record['created_by'] = request.user
+
+            try:
+                InsuranceEdit.objects.create(**record)
+                print(f"✅ Record inserted: {record}")
+                inserted += 1
+            except Exception as e:
+                print(f"❌ Error inserting record: {e}")
+                skipped += 1
+
+        messages.success(request, f"Imported {inserted} records. Skipped {skipped}.")
+        return redirect("model_tables")
+
+
+from .models import InsuranceEdit
+
+def insurance_download_excel(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Insurance Edits"
+
+    headers = ['Payer Name', 'Payer Category', 'Edit Type', 'Sub Category', 'Instruction']
+    ws.append(headers)
+
+    for record in InsuranceEdit.objects.all():
+        ws.append([
+            record.payer_name,
+            record.payer_category,
+            record.edit_type,
+            record.edit_sub_category,
+            record.instruction
+        ])
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=insurance_edits.xlsx'
+    wb.save(response)
+    return response
+
+
+# from django.template.loader import render_to_string
+# from weasyprint import HTML
+# from django.http import HttpResponse
+# import tempfile
+#
+# def insurance_download_pdf(request):
+#     edits = InsuranceEdit.objects.all()
+#     html_string = render_to_string('insurance_pdf_template.html', {'edits': edits})
+#
+#     response = HttpResponse(content_type='application/pdf')
+#     response['Content-Disposition'] = 'attachment; filename=insurance_edits.pdf'
+#
+#     with tempfile.NamedTemporaryFile(delete=True) as output:
+#         HTML(string=html_string).write_pdf(output.name)
+#         output.seek(0)
+#         response.write(output.read())
+#
+#     return response
+
+
+def client_preview_upload(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+
+        # Save to: client_update/uploaded_excels/
+        upload_dir = os.path.join(settings.BASE_DIR, 'insurance_update', 'uploaded_excels')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_name = f"{timestamp}_{excel_file.name}"
+        file_path = os.path.join(upload_dir, file_name)
+
+        with open(file_path, 'wb+') as dest:
+            for chunk in excel_file.chunks():
+                dest.write(chunk)
+
+        # Load Excel
+        wb = openpyxl.load_workbook(file_path)
+        sheet = wb.active
+        rows = list(sheet.iter_rows(values_only=True))
+
+        if not rows or not rows[0]:
+            return HttpResponseBadRequest("Excel file is empty or invalid.")
+
+        headers = rows[0]
+        sample_data = rows[1:6]
+
+        model_fields = ['name', 'active']
+        auto_mappings = []
+        for header in headers:
+            norm_header = ''.join(e.lower() for e in str(header) if e.isalnum())
+            best = None
+            for field in model_fields:
+                if norm_header in field.lower():
+                    best = field
+                    break
+            auto_mappings.append(best or '')
+
+        return render(request, 'client_mapping.html', {
+            'headers': headers,
+            'sample_data': sample_data,
+            'model_fields': model_fields,
+            'auto_mappings': auto_mappings,
+            'file_path': file_path
+        })
+
+    return HttpResponseBadRequest("No file uploaded.")
+
+
+
+from django.contrib import messages
+from django.shortcuts import redirect
+
+def client_confirm_import(request):
+    if request.method == 'POST':
+        file_path = request.POST.get('file_path')
+        wb = openpyxl.load_workbook(file_path)
+        sheet = wb.active
+        rows = list(sheet.iter_rows(values_only=True))
+
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        mappings = {}
+        for i in range(len(headers)):
+            field = request.POST.get(f"mapping_{i}")
+            if field:
+                mappings[i] = field
+
+        inserted, skipped = 0, 0
+
+        for row in data_rows:
+            record = {}
+            for idx, value in enumerate(row):
+                field = mappings.get(idx)
+                if field:
+                    record[field] = value
+
+            try:
+                client, created = Client.objects.get_or_create(name=record.get('name'))
+                if 'active' in record:
+                    client.active = record['active'] in ['True', 'true', '1', True]
+                    client.save()
+                if created:
+                    inserted += 1
+                else:
+                    skipped += 1
+            except Exception as e:
+                print(f"❌ Failed row: {record}, Error: {e}")
+                skipped += 1
+
+        messages.success(request, f"✅ Imported {inserted} clients. Skipped {skipped}.")
+        return redirect('client_list')
+
+
+import os
+import difflib
+import openpyxl
+from datetime import datetime
+from django.conf import settings
+from django.shortcuts import render
+from django.http import HttpResponseBadRequest
+from .models import ModifierRule
+
+def modifier_preview_upload(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+
+        # Create upload dir
+        upload_dir = os.path.join(settings.BASE_DIR, 'insurance_update', 'uploaded_excels')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        file_name = f"{timestamp}_{excel_file.name}"
+        file_path = os.path.join(upload_dir, file_name)
+
+        with open(file_path, 'wb+') as f:
+            for chunk in excel_file.chunks():
+                f.write(chunk)
+
+        # Read Excel
+        wb = openpyxl.load_workbook(file_path)
+        sheet = wb.active
+        rows = list(sheet.iter_rows(values_only=True))
+
+        if not rows:
+            return HttpResponseBadRequest("No data found in file.")
+
+        headers = rows[0]
+        sample_data = rows[1:6]
+
+        def normalize(text):
+            return ''.join(e.lower() for e in str(text) if e.isalnum())
+
+        model_fields = [
+            'client',
+            'payer_name',
+            'payer_category',
+            'code_type',
+            'code_list',
+            'sub_category',
+            'modifier_instruction',
+        ]
+
+        auto_mappings = []
+        for header in headers:
+            norm_header = normalize(header)
+            best_match = difflib.get_close_matches(norm_header, [normalize(f) for f in model_fields], n=1, cutoff=0.6)
+            matched_field = ''
+            if best_match:
+                for f in model_fields:
+                    if normalize(f) == best_match[0]:
+                        matched_field = f
+                        break
+            auto_mappings.append(matched_field)
+
+        # Filter only matched headers and fields
+        filtered_headers = []
+        filtered_mappings = []
+        for h, m in zip(headers, auto_mappings):
+            if m:
+                filtered_headers.append(h)
+                filtered_mappings.append(m)
+
+        return render(request, 'modifier_mapping.html', {
+            'headers': filtered_headers,
+            'sample_data': sample_data,
+            'model_fields': model_fields,
+            'auto_mappings': filtered_mappings,
+            'file_path': file_path,
+        })
+
+    return HttpResponseBadRequest("No file provided.")
+
+
+from .models import ModifierRule, Client
+
+def modifier_confirm_import(request):
+    if request.method == 'POST':
+        file_path = request.POST.get('file_path')
+        wb = openpyxl.load_workbook(file_path)
+        sheet = wb.active
+        rows = list(sheet.iter_rows(values_only=True))
+
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        mappings = {}
+        for i in range(len(headers)):
+            field = request.POST.get(f"mapping_{i}")
+            if field:
+                mappings[i] = field
+
+        for row in data_rows:
+            data = {}
+            for idx, value in enumerate(row):
+                field = mappings.get(idx)
+                if field:
+                    data[field] = value
+
+            if 'client' in data:
+                client_name = data['client']
+                client, _ = Client.objects.get_or_create(name=client_name)
+                data['client'] = client
+
+            data['created_by'] = request.user
+
+            ModifierRule.objects.create(**data)
+
+        return redirect('model_tables')
+
+import openpyxl
+from django.http import HttpResponse
+from .models import ModifierRule
+
+def download_modifier_excel(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Modifier Rules"
+
+    headers = ['Payer Name', 'Payer Category', 'Code Type', 'Code List', 'Sub Category', 'Instruction']
+    ws.append(headers)
+
+    for rule in ModifierRule.objects.all():
+        ws.append([
+            rule.payer_name,
+            rule.payer_category,
+            rule.code_type,
+            rule.code_list,
+            rule.sub_category or '',
+            rule.modifier_instruction,
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename=modifier_rules.xlsx'
+    wb.save(response)
+    return response
+
+
+
+
+# from django.template.loader import render_to_string
+# from django.http import HttpResponse
+# from weasyprint import HTML
+# from .models import ModifierRule
+#
+# def download_modifier_pdf(request):
+#     rules = ModifierRule.objects.all()
+#     html_string = render_to_string('modifier_pdf.html', {'modifier_rules': rules})
+#     pdf_file = HTML(string=html_string).write_pdf()
+#
+#     response = HttpResponse(pdf_file, content_type='application/pdf')
+#     response['Content-Disposition'] = 'attachment; filename=modifier_rules.pdf'
+#     return response
+
+# <!--      <a href="{% url 'insurance_download_pdf' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">-->
+# <!--        PDF-->
+# <!--      </a>-->
+# < !-- < a
+# href = "{% url 'download_modifier_pdf' %}"
+#
+#
+# class ="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" > Download PDF < / a > -->

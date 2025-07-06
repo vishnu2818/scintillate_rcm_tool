@@ -1,0 +1,75 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Client Mapping</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6 text-gray-800">
+
+  <div class="max-w-5xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold text-blue-700 mb-6">Map Excel Columns to Client Fields</h1>
+
+    <form method="POST" action="{% url 'client_confirm_import' %}">
+      {% csrf_token %}
+      <input type="hidden" name="file_path" value="{{ file_path }}">
+
+      <!-- Column Mapping -->
+      <table class="min-w-full text-sm table-auto border border-gray-300 mb-6">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-3 py-2 border">Excel Header</th>
+            <th class="px-3 py-2 border">Map To Field</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for header, mapping in headers|zip:auto_mappings %}
+            <tr class="border-t">
+              <td class="px-3 py-2 border">{{ header }}</td>
+              <td class="px-3 py-2 border">
+                <select name="mapping_{{ forloop.counter0 }}" class="w-full p-1 border rounded">
+                  <option value="">-- Select Field --</option>
+                  {% for field in model_fields %}
+                    <option value="{{ field }}" {% if mapping == field %}selected{% endif %}>{{ field }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Sample Data -->
+      <h2 class="text-lg font-semibold text-gray-700 mb-3">Sample Data Preview:</h2>
+      <div class="overflow-x-auto border border-gray-300 rounded mb-6">
+        <table class="min-w-full text-sm table-auto">
+          <thead class="bg-blue-100 text-left">
+            <tr>
+              {% for header in headers %}
+                <th class="px-3 py-2 border">{{ header }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in sample_data %}
+              <tr class="border-t">
+                {% for cell in row %}
+                  <td class="px-3 py-2 border">{{ cell }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-end">
+        <a href="{% url 'client_list' %}" class="px-4 py-2 bg-gray-400 text-white rounded mr-2 hover:bg-gray-500">Cancel</a>
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirm Import</button>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

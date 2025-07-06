@@ -1,0 +1,50 @@
+<form method="POST" action="{% url 'modifier_confirm_import' %}">
+  {% csrf_token %}
+  <input type="hidden" name="file_path" value="{{ file_path }}">
+
+  <table class="w-full border">
+    <thead>
+      <tr>
+        <th>Excel Column</th>
+        <th>Map To Field</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for header, mapping in headers|zip:auto_mappings %}
+        <tr>
+          <td>{{ header }}</td>
+          <td>
+            <select name="mapping_{{ forloop.counter0 }}">
+              <option value="">-- Select Field --</option>
+              {% for field in model_fields %}
+                <option value="{{ field }}" {% if mapping == field %}selected{% endif %}>{{ field }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Preview</h2>
+  <table class="w-full mt-4 border">
+    <thead>
+      <tr>
+        {% for header in headers %}
+          <th>{{ header }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in sample_data %}
+        <tr>
+          {% for cell in row %}
+            <td>{{ cell }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="mt-4 bg-green-600 text-white px-4 py-1 rounded">Confirm Import</button>
+</form>
